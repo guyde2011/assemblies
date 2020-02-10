@@ -1,4 +1,22 @@
-#! /usr/bin/python
+""" Configurable brain assembly model for simulations and research.
+Author: Daniel Mitropolsky, 2018
+
+This module contains classes to represent different elements of a brain simulation:
+	- Area - Represents an individual area of the brain, with the relevant parameters.
+	- Connectomes are the connections between neurons. They have weights, which are initialized randomly but
+		due to plasticity they can updated every time some neuron fires. These weights are represented by numpy arrays.
+	- Winners in a given 'round' are the specific neurons that fired in that round.
+		In any specific area, these will be the 'k' neurons with the highest value flown into them.
+		These are also the only neurons whose connectome weights get updated. #TODO: Accurate?
+	- Stimulus - Represents a random stimulus that can be applied to any part of the brain.
+		When a stimulus is created it is initialized randomly, but when applied multiple times this will change.
+		This is equivalent to k neurons from an unknown part of the brain firing and their (initially, random)
+		connectomes decide how this stimulus affects a given area of the brain.
+	- Brain - A class representing a simulated brain, with it's different areas, stimulus, and all the connectome weights.
+		A brain is initialized as a random graph, and it is maintained in a 'sparse' representation,
+		meaning that all neurons that have their original, random connectome weights are not saved explicitly,
+		rather handled as a group for all calculations. #TODO: Does this have any limitations?
+"""
 import numpy as np
 import heapq
 from collections import defaultdict
@@ -7,14 +25,42 @@ from scipy.stats import truncnorm
 import math
 import random
 
-# Configurable assembly model for simulations
-# Author Daniel Mitropolsky, 2018
+#TODO Document all classes and methods
 
 class Stimulus:
+	""" Represents a random stimulus that can be applied to any part of the brain.
+
+	Being random, the only thing the programmer needs to provide is
+	the number k of neurons that fire to create this stimulus.
+
+	Attributes:
+		k: number of neurons that fire
+	"""
 	def __init__(self, k):
 		self.k = k
 
 class Area:
+	"""Represents an individual area of the brain, with the relevant parameters.
+
+	Since it is initialized randomly, all the programmer needs to provide is the number 'n' of neurons,
+	number 'k' of winners in any given round (meaning the k neurons with heights values will fire),
+	and the parameter 'beta' of plasticity controlling connectome weight updates.
+	#TODO: Seems there are more betas, understand and explain them
+
+	Attributes:
+		n: number of neurons
+		k: number of winners
+		beta:
+		stimulus_beta:
+		area_beta:
+		w:
+		winners:
+		new_w:
+		_new_winners:
+		saved_winners:
+		saved_w:
+		num_first_winners:
+	"""
 	def __init__(self, name, n, k, beta=0.05):
 		self.name = name
 		self.n = n
@@ -31,7 +77,7 @@ class Area:
 		self.winners = []
 		self.new_w = 0
 		# new winners computed DURING a projection, do not use outside of internal project function
-		self.new_winners = []
+		self._new_winners = []
 		# list of lists of all winners in each round
 		self.saved_winners = []
 		# list of size of support in each round
@@ -39,16 +85,36 @@ class Area:
 		self.num_first_winners = -1
 
 	def update_winners(self):
-		self.winners = self.new_winners
+		""" TODO
+		"""
+		self.winners = self._new_winners
 		self.w = self.new_w
 
 	def update_stimulus_beta(self, name, new_beta):
+		""" TODO
+		"""
 		self.stimulus_beta[name] = new_beta
 
 	def update_area_beta(self, name, new_beta):
+		""" TODO
+		"""
 		self.area_beta[name] = new_beta
 
 class Brain:
+	"""Represents a simulated brain, with it's different areas, stimulus, and all the connectome weights.
+	Being a randomly initialized brain, all the programmer needs to provide is the probability 'p' of a
+	connectome existing between any two given neurons. #TODO Is this really p?
+
+	Attributes: TODO
+		areas:
+		stimuli:
+		stimuli_connectomes:
+		connectomes:
+		p:
+		save_size:
+		save_winners:
+	"""
+
 	def __init__(self, p, save_size=True, save_winners=False):
 		self.areas = {}
 		self.stimuli = {}
@@ -59,6 +125,12 @@ class Brain:
 		self.save_winners = save_winners
 
 	def add_stimulus(self, name, k):
+		"""TODO
+
+		:param name:
+		:param k:
+		:return:
+		"""
 		self.stimuli[name] = Stimulus(k)
 		new_connectomes = {}
 		for key in self.areas:
@@ -67,9 +139,17 @@ class Brain:
 		self.stimuli_connectomes[name] = new_connectomes
 
 	def add_area(self, name, n, k, beta):
+		"""TODO
+
+		:param name:
+		:param n:
+		:param k:
+		:param beta:
+		:return:
+		"""
 		self.areas[name] = Area(name, n, k, beta)
 
-		for stim_name,stim_connectomes in self.stimuli_connectomes.iteritems():
+		for stim_name,stim_connectomes in self.stimuli_connectomes.items():
 			stim_connectomes[name] = np.empty(0)
 			self.areas[name].stimulus_beta[stim_name] = beta
 
@@ -83,19 +163,32 @@ class Brain:
 		self.connectomes[name] = new_connectomes
 
 	def update_plasticities(self, area_update_map={}, stim_update_map={}):
+		""" TODO
+
+		:param area_update_map:
+		:param stim_update_map:
+		:return:
+		"""
 		# area_update_map consists of area1: list[ (area2, new_beta) ]
 		# represents new plasticity FROM area2 INTO area1
-		for to_area, update_rules in area_update_map.items():
+		for to_area, update_rules in list(area_update_map.items()):
 			for (from_area, new_beta) in update_rules: 
 				self.areas[to_area].area_beta[from_area] = new_beta
 
 		# stim_update_map consists of area: list[ (stim, new_beta) ]f
 		# represents new plasticity FROM stim INTO area
-		for area, update_rules in stim_update_map.items():
+		for area, update_rules in list(stim_update_map.items()):
 			for (stim, new_beta) in update_rules:
 				self.areas[area].stimulus_beta[stim] = new_beta
 
 	def project(self, stim_to_area, area_to_area, verbose=False):
+		"""TODO
+
+		:param stim_to_area:
+		:param area_to_area:
+		:param verbose:
+		:return:
+		"""
 		# Validate stim_area, area_area well defined
 		# stim_to_area: {"stim1":["A"], "stim2":["C","A"]}
 		# area_to_area: {"A":["A","B"],"C":["C","A"]}
@@ -103,7 +196,7 @@ class Brain:
 		stim_in = defaultdict(lambda: [])
 		area_in = defaultdict(lambda: [])
 
-		for stim, areas in stim_to_area.iteritems():
+		for stim, areas in stim_to_area.items():
 			if stim not in self.stimuli:
 				raise IndexError(stim + " not in brain.stimuli")
 				return
@@ -112,7 +205,7 @@ class Brain:
 					raise IndexError(area + " not in brain.areas")
 					return
 				stim_in[area].append(stim)
-		for from_area, to_areas in area_to_area.iteritems():
+		for from_area, to_areas in area_to_area.items():
 			if from_area not in self.areas:
 				raise IndexError(from_area + " not in brain.areas")
 				return
@@ -122,7 +215,7 @@ class Brain:
 					return
 				area_in[to_area].append(from_area)
 
-		to_update = set().union(stim_in.keys(), area_in.keys())
+		to_update = set().union(list(stim_in.keys()), list(area_in.keys()))
 
 		for area in to_update:
 			num_first_winners = self.project_into(self.areas[area], stim_in[area], area_in[area], verbose)
@@ -137,29 +230,37 @@ class Brain:
 				self.areas[area].saved_w.append(self.areas[area].w)
 
 	def project_into(self, area, from_stimuli, from_areas, verbose=False):
-	# projecting everything in from stim_in[area] and area_in[area]
-	# calculate: inputs to self.connectomes[area] (previous winners)
-	# calculate: potential new winners, Binomial(sum of in sizes, k-top)
-	# k top of previous winners and potential new winners
-	# if new winners > 0, redo connectome and intra_connectomes 
-	# have to wait to replace new_winners
-		print("Projecting " + ",".join(from_stimuli) + " and " + ",".join(from_areas) + " into " + area.name)
+		"""TODO
+
+		:param area:
+		:param from_stimuli:
+		:param from_areas:
+		:param verbose:
+		:return:
+		"""
+		# projecting everything in from stim_in[area] and area_in[area]
+		# calculate: inputs to self.connectomes[area] (previous winners)
+		# calculate: potential new winners, Binomial(sum of in sizes, k-top)
+		# k top of previous winners and potential new winners
+		# if new winners > 0, redo connectome and intra_connectomes
+		# have to wait to replace new_winners
+		print(("Projecting " + ",".join(from_stimuli) + " and " + ",".join(from_areas) + " into " + area.name))
 
 		name = area.name
 		prev_winner_inputs = [0.] * area.w
 		for stim in from_stimuli:
 			stim_inputs = self.stimuli_connectomes[stim][name]
-			for i in xrange(area.w):
+			for i in range(area.w):
 				prev_winner_inputs[i] += stim_inputs[i]
 		for from_area in from_areas:
 			connectome = self.connectomes[from_area][name]
 			for w in self.areas[from_area].winners:
-				for i in xrange(area.w):
+				for i in range(area.w):
 					prev_winner_inputs[i] += connectome[w][i]
 
 		if verbose:
-			print "prev_winner_inputs: "
-			print prev_winner_inputs
+			print("prev_winner_inputs: ")
+			print(prev_winner_inputs)
 
 		# simulate area.k potential new winners
 		total_k = 0
@@ -178,14 +279,14 @@ class Brain:
 			num_inputs += 1
 
 		if verbose:
-			print "total_k = " + str(total_k) + " and input_sizes = " + str(input_sizes)
+			print("total_k = " + str(total_k) + " and input_sizes = " + str(input_sizes))
 
 		effective_n = area.n - area.w
 		# Threshold for inputs that are above (n-k)/n percentile.
 		# self.p can be changed to have a custom connectivity into thi sbrain area.
 		alpha = binom.ppf((float(effective_n-area.k)/effective_n), total_k, self.p)
 		if verbose:
-			print("Alpha = " + str(alpha))
+			print(("Alpha = " + str(alpha)))
 		# use normal approximation, between alpha and total_k, round to integer
 		# create k potential_new_winners
 		std = math.sqrt(total_k * self.p * (1.0-self.p))
@@ -193,23 +294,23 @@ class Brain:
 		a = float(alpha - mu) / std
 		b = float(total_k - mu) / std
 		potential_new_winners = truncnorm.rvs(a, b, scale=std, size=area.k)
-		for i in xrange(area.k):
+		for i in range(area.k):
 			potential_new_winners[i] += mu
 			potential_new_winners[i] = round(potential_new_winners[i])
 		potential_new_winners = potential_new_winners.tolist()
 
 		if verbose:
-			print "potential_new_winners: "
-			print potential_new_winners
+			print("potential_new_winners: ")
+			print(potential_new_winners)
 
 		# take max among prev_winner_inputs, potential_new_winners
 		# get num_first_winners (think something small)
 		# can generate area.new_winners, note the new indices
 		both = prev_winner_inputs + potential_new_winners
-		new_winner_indices = heapq.nlargest(area.k, range(len(both)), both.__getitem__)
+		new_winner_indices = heapq.nlargest(area.k, list(range(len(both))), both.__getitem__)
 		num_first_winners = 0
 		first_winner_inputs = []
-		for i in xrange(area.k):
+		for i in range(area.k):
 			if new_winner_indices[i] >= area.w:
 				first_winner_inputs.append(potential_new_winners[new_winner_indices[i] - area.w])
 				new_winner_indices[i] = area.w+ num_first_winners
@@ -220,25 +321,25 @@ class Brain:
 		# print name + " num_first_winners = " + str(num_first_winners)
 
 		if verbose:
-			print "new_winners: "
-			print area.new_winners
+			print("new_winners: ")
+			print(area.new_winners)
 
 		# for i in num_first_winners
 		# generate where input came from
 			# 1) can sample input from array of size total_k, use ranges
 			# 2) can use stars/stripes method: if m total inputs, sample (m-1) out of total_k
 		first_winner_to_inputs = {}
-		for i in xrange(num_first_winners):
-			input_indices = random.sample(xrange(0, total_k), int(first_winner_inputs[i]))
+		for i in range(num_first_winners):
+			input_indices = random.sample(range(0, total_k), int(first_winner_inputs[i]))
 			inputs = np.zeros(num_inputs)
 			total_so_far = 0
-			for j in xrange(num_inputs):
+			for j in range(num_inputs):
 				inputs[j] = sum([((total_so_far + input_sizes[j]) > w >= total_so_far) for w in input_indices])
 				total_so_far += input_sizes[j]
 			first_winner_to_inputs[i] = inputs
 			if verbose:
-				print "for first_winner # " + str(i) + " with input " + str(first_winner_inputs[i]) + " split as so: "
-				print inputs
+				print("for first_winner # " + str(i) + " with input " + str(first_winner_inputs[i]) + " split as so: ")
+				print(inputs)
 
 		m = 0
 		# connectome for each stim->area
@@ -248,14 +349,14 @@ class Brain:
 			if num_first_winners > 0:
 				self.stimuli_connectomes[stim][name] = np.resize(self.stimuli_connectomes[stim][name],
 					area.w + num_first_winners)
-			for i in xrange(num_first_winners):
+			for i in range(num_first_winners):
 				self.stimuli_connectomes[stim][name][area.w + i] = first_winner_to_inputs[i][m]
 			stim_to_area_beta = area.stimulus_beta[stim]
 			for i in area.new_winners:
 				self.stimuli_connectomes[stim][name][i] *= (1+stim_to_area_beta)
 			if verbose:
-				print stim + " now looks like: " 
-				print self.stimuli_connectomes[stim][name]
+				print(stim + " now looks like: ") 
+				print(self.stimuli_connectomes[stim][name])
 			m += 1
 
 		# connectome for each in_area->area
@@ -267,10 +368,10 @@ class Brain:
 			from_area_winners = self.areas[from_area].winners
 			self.connectomes[from_area][name] = np.pad(self.connectomes[from_area][name], 
 				((0,0),(0,num_first_winners)), 'constant', constant_values=0)
-			for i in xrange(num_first_winners):
+			for i in range(num_first_winners):
 				total_in = first_winner_to_inputs[i][m]
 				sample_indices = random.sample(from_area_winners, int(total_in))
-				for j in xrange(from_area_w):
+				for j in range(from_area_w):
 					if j in sample_indices:
 						self.connectomes[from_area][name][j][area.w+i] = 1
 					if j not in from_area_winners:
@@ -280,8 +381,8 @@ class Brain:
 				for j in from_area_winners:
 					self.connectomes[from_area][name][j][i] *= (1.0 +area_to_area_beta)
 			if verbose:
-				print "Connectome of " + from_area + " to " + name + " is now:"
-				print self.connectomes[from_area][name]
+				print("Connectome of " + from_area + " to " + name + " is now:")
+				print(self.connectomes[from_area][name])
 			m += 1
 
 		# expand connectomes from other areas that did not fire into area
@@ -290,19 +391,19 @@ class Brain:
 			if other_area not in from_areas:
 				self.connectomes[other_area][name] = np.pad(self.connectomes[other_area][name], 
 					((0,0),(0,num_first_winners)), 'constant', constant_values=0)
-				for j in xrange(self.areas[other_area].w):
-					for i in xrange(area.w, area.new_w):
+				for j in range(self.areas[other_area].w):
+					for i in range(area.w, area.new_w):
 						self.connectomes[other_area][name][j][i] = np.random.binomial(1,self.p)
 			# add num_first_winners rows, all bernoulli with probability p
 			self.connectomes[name][other_area] = np.pad(self.connectomes[name][other_area],
 				((0, num_first_winners),(0, 0)), 'constant', constant_values=0)
 			columns = len(self.connectomes[name][other_area][0])
-			for i in xrange(area.w, area.new_w):
-				for j in xrange(columns):
+			for i in range(area.w, area.new_w):
+				for j in range(columns):
 					self.connectomes[name][other_area][i][j] = np.random.binomial(1,self.p)
 			if verbose:
-				print "Connectome of " + name + " to " + other_area + " is now:"
-				print self.connectomes[name][other_area]
+				print("Connectome of " + name + " to " + other_area + " is now:")
+				print(self.connectomes[name][other_area])
 
 		return num_first_winners
 
