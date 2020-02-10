@@ -16,6 +16,7 @@ This module contains classes to represent different elements of a brain simulati
 		A brain is initialized as a random graph, and it is maintained in a 'sparse' representation,
 		meaning that all neurons that have their original, random connectome weights are not saved explicitly,
 		rather handled as a group for all calculations. #TODO: Does this have any limitations?
+	- Assembly - TODO define and express in code
 """
 import numpy as np
 import heapq
@@ -105,14 +106,14 @@ class Brain:
 	Being a randomly initialized brain, all the programmer needs to provide is the probability 'p' of a
 	connectome existing between any two given neurons. #TODO Is this really p?
 
-	Attributes: TODO
-		areas:
-		stimuli:
-		stimuli_connectomes:
-		connectomes:
-		p:
-		save_size:
-		save_winners:
+	Attributes:
+		areas: A mapping from area names to Area objects representing them.
+		stimuli: A mapping from stimulus names to Stimulus objects representing them.
+		stimuli_connectomes: The connectome weights for each stimulus, saving sparsly only the non-random values.
+		connectomes: The connectome weights for each area, saving sparsly only the non-random values.
+		p: TODO
+		save_size: TODO
+		save_winners: TODO
 	"""
 
 	def __init__(self, p, save_size=True, save_winners=False):
@@ -125,10 +126,11 @@ class Brain:
 		self.save_winners = save_winners
 
 	def add_stimulus(self, name, k):
-		"""TODO
+		""" Initialize a random stimulus with 'k' neurons firing.
+		This stimulus can later be applied to different areas of the brain, also updating its outgoing connectomes in the process.
 
-		:param name:
-		:param k:
+		:param name: Name used to refer to stimulus
+		:param k: Number of neurons in the stimulus
 		:return:
 		"""
 		self.stimuli[name] = Stimulus(k)
@@ -139,13 +141,15 @@ class Brain:
 		self.stimuli_connectomes[name] = new_connectomes
 
 	def add_area(self, name, n, k, beta):
-		"""TODO
+		"""Add an area to this brain, randomly connected to all other areas and stimulus.
 
-		:param name:
-		:param n:
-		:param k:
-		:param beta:
-		:return:
+		The random connections are defined by the global 'p' parameter of the brain TODO true?
+
+		:param name: Name of area
+		:param n: Number of neurons in the new area
+		:param k: Number of winners in the new area
+		:param beta: plasticity parameter of connectomes coming INTO this area.
+				The plasticity parameter of connectomes FROM this area INTO other areas are decided by the betas of those other areas.
 		"""
 		self.areas[name] = Area(name, n, k, beta)
 
@@ -163,11 +167,11 @@ class Brain:
 		self.connectomes[name] = new_connectomes
 
 	def update_plasticities(self, area_update_map={}, stim_update_map={}):
-		""" TODO
+		""" This is used to update the plasticity parameters of connectomes between areas and from stimuli into areas.
+		TODO: What about within an area? Why is it not part of this function as well?
 
-		:param area_update_map:
-		:param stim_update_map:
-		:return:
+		:param area_update_map: dictionary containing, for each area, a list of incoming betas to be updated #TODO: Example
+		:param stim_update_map: dictionary containing, for each area, a list of incoming betas to be updated
 		"""
 		# area_update_map consists of area1: list[ (area2, new_beta) ]
 		# represents new plasticity FROM area2 INTO area1
@@ -182,17 +186,18 @@ class Brain:
 				self.areas[area].stimulus_beta[stim] = new_beta
 
 	def project(self, stim_to_area, area_to_area, verbose=False):
-		"""TODO
+		"""Projecting is what happens when a stimulus is applied to some area,
+		and also when a resulting assembly formed in some area fires into a separate brain area, creating a secondary stimulus, etc.
 
-		:param stim_to_area:
-		:param area_to_area:
+		:param stim_to_area: Dictionary that matches to each stimuli applied a list of areas to project into.
+			Example: {"stim1":["A"], "stim2":["C","A"]}
+		:param area_to_area: Dictionary that matches for each area a list of areas to project into.
+			Note that an area can also be projected into itself.
+			Example: {"A":["A","B"],"C":["C","A"]}
 		:param verbose:
 		:return:
 		"""
 		# Validate stim_area, area_area well defined
-		# stim_to_area: {"stim1":["A"], "stim2":["C","A"]}
-		# area_to_area: {"A":["A","B"],"C":["C","A"]}
-
 		stim_in = defaultdict(lambda: [])
 		area_in = defaultdict(lambda: [])
 
@@ -230,13 +235,12 @@ class Brain:
 				self.areas[area].saved_w.append(self.areas[area].w)
 
 	def project_into(self, area, from_stimuli, from_areas, verbose=False):
-		"""TODO
+		"""Project multiple stimuli and area assemblies into area 'area' at the same time.
 
-		:param area:
-		:param from_stimuli:
-		:param from_areas:
-		:param verbose:
-		:return:
+		:param area: The area projected into
+		:param from_stimuli: The stimuli that we will be applying
+		:param from_areas: The separate areas whose assemblies we will project into this area
+		:return: TODO is the return value used anywhere? if yes, document what it is
 		"""
 		# projecting everything in from stim_in[area] and area_in[area]
 		# calculate: inputs to self.connectomes[area] (previous winners)
