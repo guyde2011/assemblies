@@ -5,6 +5,7 @@ This module contains classes to represent different elements of a brain simulati
 	- Area - Represents an individual area of the brain, with the relevant parameters.
 	- Connectomes are the connections between neurons. They have weights, which are initialized randomly but
 		due to plasticity they can updated every time some neuron fires. These weights are represented by numpy arrays.
+		The ones that are not random, because they were influenced by previous projections, are referred to as the 'support'.
 	- Winners in a given 'round' are the specific neurons that fired in that round.
 		In any specific area, these will be the 'k' neurons with the highest value flown into them.
 		These are also the only neurons whose connectome weights get updated. #TODO: Accurate?
@@ -14,7 +15,7 @@ This module contains classes to represent different elements of a brain simulati
 		connectomes decide how this stimulus affects a given area of the brain.
 	- Brain - A class representing a simulated brain, with it's different areas, stimulus, and all the connectome weights.
 		A brain is initialized as a random graph, and it is maintained in a 'sparse' representation,
-		meaning that all neurons that have their original, random connectome weights are not saved explicitly,
+		meaning that all neurons that have their original, random connectome weights (0 or 1) are not saved explicitly,
 		rather handled as a group for all calculations. #TODO: Does this have any limitations?
 	- Assembly - TODO define and express in code
 """
@@ -27,6 +28,8 @@ import math
 import random
 
 #TODO Document all classes and methods
+#TODO Add type hints for everything
+#TODO Improve the code readability
 
 class Stimulus:
 	""" Represents a random stimulus that can be applied to any part of the brain.
@@ -37,7 +40,7 @@ class Stimulus:
 	Attributes:
 		k: number of neurons that fire
 	"""
-	def __init__(self, k):
+	def __init__(self, k: int):
 		self.k = k
 
 class Area:
@@ -56,13 +59,13 @@ class Area:
 		area_beta:
 		w:
 		winners:
-		new_w:
+		_new_w:
 		_new_winners:
 		saved_winners:
 		saved_w:
 		num_first_winners:
 	"""
-	def __init__(self, name, n, k, beta=0.05):
+	def __init__(self, name: str, n: int, k: int, beta: float = 0.05):
 		self.name = name
 		self.n = n
 		self.k = k
@@ -72,16 +75,16 @@ class Area:
 		self.stimulus_beta = {}
 		# Betas form areas into this area.
 		self.area_beta = {}
+		# Size of the support, i.e. the number of connectomes with non-random values
 		self.w = 0
-		# List of winners currently (after previous action). Can be 
-		# read by caller.
+		# List of winners currently (after previous action). Can be read by caller.
 		self.winners = []
-		self.new_w = 0
 		# new winners computed DURING a projection, do not use outside of internal project function
+		self._new_w = 0
 		self._new_winners = []
-		# list of lists of all winners in each round
+		# list of lists of all winners in each round, only saved if user asks for it
 		self.saved_winners = []
-		# list of size of support in each round
+		# list of size of support in each round, only saved if user asks for it
 		self.saved_w = []
 		self.num_first_winners = -1
 
@@ -89,7 +92,7 @@ class Area:
 		""" TODO
 		"""
 		self.winners = self._new_winners
-		self.w = self.new_w
+		self.w = self._new_w
 
 	def update_stimulus_beta(self, name, new_beta):
 		""" TODO
@@ -104,16 +107,17 @@ class Area:
 class Brain:
 	"""Represents a simulated brain, with it's different areas, stimulus, and all the connectome weights.
 	Being a randomly initialized brain, all the programmer needs to provide is the probability 'p' of a
-	connectome existing between any two given neurons. #TODO Is this really p?
+	connectome existing between any two given neurons.
 
 	Attributes:
 		areas: A mapping from area names to Area objects representing them.
 		stimuli: A mapping from stimulus names to Stimulus objects representing them.
-		stimuli_connectomes: The connectome weights for each stimulus, saving sparsly only the non-random values.
-		connectomes: The connectome weights for each area, saving sparsly only the non-random values.
-		p: TODO
-		save_size: TODO
-		save_winners: TODO
+		stimuli_connectomes: The connectome weights for each stimulus, saved sparsely only for non-trivial neurons,
+		meaning neurons that had been winners in some projection (otherwise all connectomes are randomly 0 or 1).
+		connectomes: The connectome weights for each area, saved sparsely only for non-trivial neurons.
+		p: Probability of connectome (edge) existing between two neurons (vertices)
+		save_size: Whether we should keep track of the size of the support TODO Remove this or implement in a different way? It's just ugly research code
+		save_winners: TODO Remove this or implement in a different way? It's just ugly research code
 	"""
 
 	def __init__(self, p, save_size=True, save_winners=False):
@@ -143,7 +147,8 @@ class Brain:
 	def add_area(self, name, n, k, beta):
 		"""Add an area to this brain, randomly connected to all other areas and stimulus.
 
-		The random connections are defined by the global 'p' parameter of the brain TODO true?
+		The random connections are controlled by the global 'p' parameter of the brain,
+		initializing each connectome to have a value of 0 or 1 with probability 'p'.
 
 		:param name: Name of area
 		:param n: Number of neurons in the new area
@@ -171,7 +176,7 @@ class Brain:
 		TODO: What about within an area? Why is it not part of this function as well?
 
 		:param area_update_map: dictionary containing, for each area, a list of incoming betas to be updated #TODO: Example
-		:param stim_update_map: dictionary containing, for each area, a list of incoming betas to be updated
+		:param stim_update_map: dictionary containing, for each area, a list of incoming betas to be updated #TODO: Example
 		"""
 		# area_update_map consists of area1: list[ (area2, new_beta) ]
 		# represents new plasticity FROM area2 INTO area1
@@ -194,13 +199,11 @@ class Brain:
 		:param area_to_area: Dictionary that matches for each area a list of areas to project into.
 			Note that an area can also be projected into itself.
 			Example: {"A":["A","B"],"C":["C","A"]}
-		:param verbose:
-		:return:
+		:param verbose: Print debug information #TODO: This should be done with logging package levels
 		"""
-		# Validate stim_area, area_area well defined
 		stim_in = defaultdict(lambda: [])
 		area_in = defaultdict(lambda: [])
-
+		# Validate stim_area, area_area well defined
 		for stim, areas in stim_to_area.items():
 			if stim not in self.stimuli:
 				raise IndexError(stim + " not in brain.stimuli")
@@ -240,7 +243,7 @@ class Brain:
 		:param area: The area projected into
 		:param from_stimuli: The stimuli that we will be applying
 		:param from_areas: The separate areas whose assemblies we will project into this area
-		:return: TODO is the return value used anywhere? if yes, document what it is
+		:return: Returns the number of area neurons that were winners for the first time during this projection
 		"""
 		# projecting everything in from stim_in[area] and area_in[area]
 		# calculate: inputs to self.connectomes[area] (previous winners)
@@ -248,6 +251,7 @@ class Brain:
 		# k top of previous winners and potential new winners
 		# if new winners > 0, redo connectome and intra_connectomes
 		# have to wait to replace new_winners
+		#TODO Add more documentation to this function which does most of the work
 		print(("Projecting " + ",".join(from_stimuli) + " and " + ",".join(from_areas) + " into " + area.name))
 
 		name = area.name
@@ -287,7 +291,7 @@ class Brain:
 
 		effective_n = area.n - area.w
 		# Threshold for inputs that are above (n-k)/n percentile.
-		# self.p can be changed to have a custom connectivity into thi sbrain area.
+		# self.p can be changed to have a custom connectivity into this brain area.
 		alpha = binom.ppf((float(effective_n-area.k)/effective_n), total_k, self.p)
 		if verbose:
 			print(("Alpha = " + str(alpha)))
@@ -317,7 +321,7 @@ class Brain:
 		for i in range(area.k):
 			if new_winner_indices[i] >= area.w:
 				first_winner_inputs.append(potential_new_winners[new_winner_indices[i] - area.w])
-				new_winner_indices[i] = area.w+ num_first_winners
+				new_winner_indices[i] = area.w + num_first_winners
 				num_first_winners += 1
 		area.new_winners = new_winner_indices
 		area.new_w = area.w + num_first_winners
