@@ -19,6 +19,7 @@ This module contains classes to represent different elements of a brain simulati
 		rather handled as a group for all calculations. #TODO: Does this have any limitations?
 	- Assembly - TODO define and express in code
 """
+from typing import List
 import numpy as np
 import heapq
 from collections import defaultdict
@@ -59,8 +60,8 @@ class Area:
 		area_beta:
 		w:
 		winners:
-		_new_w:
-		_new_winners:
+		new_w:
+		new_winners:
 		saved_winners:
 		saved_w:
 		num_first_winners:
@@ -81,8 +82,8 @@ class Area:
 		# read by caller.
 		self.winners = []
 		# new winners computed DURING a projection, do not use outside of internal project function
-		self._new_w = 0
-		self._new_winners = []
+		self.new_w = 0
+		self.new_winners = []
 		# list of lists of all winners in each round, only saved if user asks for it
 		self.saved_winners = []
 		# list of size of support in each round, only saved if user asks for it
@@ -92,8 +93,8 @@ class Area:
 	def update_winners(self):
 		""" TODO
 		"""
-		self.winners = self._new_winners
-		self.w = self._new_w
+		self.winners = self.new_winners
+		self.w = self.new_w
 
 	def update_stimulus_beta(self, name, new_beta):
 		""" TODO
@@ -238,12 +239,12 @@ class Brain:
 			if self.save_size:
 				self.areas[area].saved_w.append(self.areas[area].w)
 
-	def project_into(self, area, from_stimuli, from_areas, verbose=False):
+	def project_into(self, area: Area, from_stimuli: List[Area], from_areas: List[Area], verbose: bool = False):
 		"""Project multiple stimuli and area assemblies into area 'area' at the same time.
 
 		:param area: The area projected into
 		:param from_stimuli: The stimuli that we will be applying
-		:param from_areas: The separate areas whose assemblies we will project into this area
+		:param from_areas: List of separate areas whose assemblies we will project into this area
 		:return: Returns the number of area neurons that were winners for the first time during this projection
 		"""
 		# projecting everything in from stim_in[area] and area_in[area]
