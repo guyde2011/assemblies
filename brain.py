@@ -19,7 +19,7 @@ This module contains classes to represent different elements of a brain simulati
 		rather handled as a group for all calculations. #TODO: Does this have any limitations?
 	- Assembly - TODO define and express in code
 """
-from typing import List
+from typing import List, Mapping, Tuple
 import numpy as np
 import heapq
 from collections import defaultdict
@@ -96,12 +96,12 @@ class Area:
 		self.winners = self.new_winners
 		self.w = self.new_w
 
-	def update_stimulus_beta(self, name, new_beta):
+	def update_stimulus_beta(self, name: str, new_beta: float):
 		""" TODO
 		"""
 		self.stimulus_beta[name] = new_beta
 
-	def update_area_beta(self, name, new_beta):
+	def update_area_beta(self, name: str, new_beta: float):
 		""" TODO
 		"""
 		self.area_beta[name] = new_beta
@@ -122,7 +122,7 @@ class Brain:
 		save_winners: TODO Remove this or implement in a different way? It's just ugly research code
 	"""
 
-	def __init__(self, p, save_size=True, save_winners=False):
+	def __init__(self, p: float, save_size: bool = True, save_winners: bool = False):
 		self.areas = {}
 		self.stimuli = {}
 		self.stimuli_connectomes = {}
@@ -131,7 +131,7 @@ class Brain:
 		self.save_size = save_size
 		self.save_winners = save_winners
 
-	def add_stimulus(self, name, k):
+	def add_stimulus(self, name: str, k: int):
 		""" Initialize a random stimulus with 'k' neurons firing.
 		This stimulus can later be applied to different areas of the brain, also updating its outgoing connectomes in the process.
 
@@ -146,7 +146,7 @@ class Brain:
 			self.areas[key].stimulus_beta[name] = self.areas[key].beta
 		self.stimuli_connectomes[name] = new_connectomes
 
-	def add_area(self, name, n, k, beta):
+	def add_area(self, name: str, n: int, k: int, beta: float):
 		"""Add an area to this brain, randomly connected to all other areas and stimulus.
 
 		The random connections are controlled by the global 'p' parameter of the brain,
@@ -173,7 +173,8 @@ class Brain:
 			self.areas[name].area_beta[key] = beta
 		self.connectomes[name] = new_connectomes
 
-	def update_plasticities(self, area_update_map={}, stim_update_map={}):
+	def update_plasticities(self, area_update_map: Mapping[str, List[Tuple[str, float]]] = {},
+								stim_update_map: Mapping[str, List[Tuple[str, float]]] = {}):
 		""" This is used to update the plasticity parameters of connectomes between areas and from stimuli into areas.
 		TODO: What about within an area? Why is it not part of this function as well?
 
@@ -192,7 +193,10 @@ class Brain:
 			for (stim, new_beta) in update_rules:
 				self.areas[area].stimulus_beta[stim] = new_beta
 
-	def project(self, stim_to_area, area_to_area, verbose=False):
+	# TODO: Add default values like update_plasticities method?
+	def project(self, stim_to_area: Mapping[str, List[str]],
+					area_to_area: Mapping[str, List[str]],
+					verbose=False):
 		"""Projecting is what happens when a stimulus is applied to some area,
 		and also when a resulting assembly formed in some area fires into a separate brain area, creating a secondary stimulus, etc.
 
@@ -209,20 +213,16 @@ class Brain:
 		for stim, areas in stim_to_area.items():
 			if stim not in self.stimuli:
 				raise IndexError(stim + " not in brain.stimuli")
-				return
 			for area in areas:
 				if area not in self.areas:
 					raise IndexError(area + " not in brain.areas")
-					return
 				stim_in[area].append(stim)
 		for from_area, to_areas in area_to_area.items():
 			if from_area not in self.areas:
 				raise IndexError(from_area + " not in brain.areas")
-				return
 			for to_area in to_areas:
 				if to_area not in self.areas:
 					raise IndexError(to_area + " not in brain.areas")
-					return
 				area_in[to_area].append(from_area)
 
 		to_update = set().union(list(stim_in.keys()), list(area_in.keys()))
@@ -404,7 +404,7 @@ class Brain:
 					((0,0),(0,num_first_winners)), 'constant', constant_values=0)
 				for j in range(self.areas[other_area].w):
 					for i in range(area.w, area.new_w):
-						self.connectomes[other_area][name][j][i] = np.random.binomial(1,self.p)
+						self.connectomes[other_area][name][j][i] = np.random.binomial(1, self.p)
 			# add num_first_winners rows, all bernoulli with probability p
 			self.connectomes[name][other_area] = np.pad(self.connectomes[name][other_area],
 				((0, num_first_winners),(0, 0)), 'constant', constant_values=0)
