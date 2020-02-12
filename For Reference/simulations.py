@@ -13,6 +13,7 @@ or to used as a baseline for profiling and optimization.
 
 import brain
 import brain_util as bu
+import logging
 import numpy as np
 import random
 import copy
@@ -23,6 +24,7 @@ from collections import OrderedDict
 
 def project_sim(n=1000000,k=1000,p=0.01,beta=0.05,t=50):
     b = brain.Brain(p)
+    logging.basicConfig(level=logging.INFO)
     b.add_stimulus("stim",k)
     b.add_area("A",n,k,beta)
     b.project({"stim":["A"]},{})
