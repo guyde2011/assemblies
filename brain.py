@@ -93,20 +93,22 @@ class Area:
 		self.num_first_winners = -1
 
 	def update_winners(self) -> None:
-		""" TODO
+		""" This function updates the list of winners for this area after a projection step.
+		Each area holds a list of winners, being the neurons who have fired in previous steps,
+		and therefore their connectomes have non-trivial values (not only zero/one).
 		"""
 		self.winners = self._new_winners
 		self.w = self._new_w
 
-	def update_stimulus_beta(self, name: str, new_beta: float) -> None:
-		""" TODO
+	def update_stimulus_beta(self, stimulus_name: str, new_beta: float) -> None:
+		""" Updates the beta plasticity parameter for connectomes entering this area from the given stimulus.
 		"""
-		self.stimulus_beta[name] = new_beta
+		self.stimulus_beta[stimulus_name] = new_beta
 
-	def update_area_beta(self, name: str, new_beta: float) -> None:
-		""" TODO
+	def update_area_beta(self, other_area_name: str, new_beta: float) -> None:
+		""" Updates the beta plasticity parameter for connectomes entering this area from the given area.
 		"""
-		self.area_beta[name] = new_beta
+		self.area_beta[other_area_name] = new_beta
 
 
 class Brain:
