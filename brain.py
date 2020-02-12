@@ -60,8 +60,8 @@ class Area:
 		area_beta:
 		w:
 		winners:
-		new_w:
-		new_winners:
+		_new_w:
+		_new_winners:
 		saved_winners:
 		saved_w:
 		num_first_winners:
@@ -82,8 +82,8 @@ class Area:
 		# read by caller.
 		self.winners = []
 		# new winners computed DURING a projection, do not use outside of internal project function
-		self.new_w = 0
-		self.new_winners = []
+		self._new_w = 0
+		self._new_winners = []
 		# list of lists of all winners in each round, only saved if user asks for it
 		self.saved_winners = []
 		# list of size of support in each round, only saved if user asks for it
@@ -93,8 +93,8 @@ class Area:
 	def update_winners(self):
 		""" TODO
 		"""
-		self.winners = self.new_winners
-		self.w = self.new_w
+		self.winners = self._new_winners
+		self.w = self._new_w
 
 	def update_stimulus_beta(self, name: str, new_beta: float):
 		""" TODO
@@ -326,14 +326,14 @@ class Brain:
 				first_winner_inputs.append(potential_new_winners[new_winner_indices[i] - area.w])
 				new_winner_indices[i] = area.w + num_first_winners
 				num_first_winners += 1
-		area.new_winners = new_winner_indices
-		area.new_w = area.w + num_first_winners
+		area._new_winners = new_winner_indices
+		area._new_w = area.w + num_first_winners
 
 		# print name + " num_first_winners = " + str(num_first_winners)
 
 		if verbose:
 			print("new_winners: ")
-			print(area.new_winners)
+			print(area._new_winners)
 
 		# for i in num_first_winners
 		# generate where input came from
@@ -363,7 +363,7 @@ class Brain:
 			for i in range(num_first_winners):
 				self.stimuli_connectomes[stim][name][area.w + i] = first_winner_to_inputs[i][m]
 			stim_to_area_beta = area.stimulus_beta[stim]
-			for i in area.new_winners:
+			for i in area._new_winners:
 				self.stimuli_connectomes[stim][name][i] *= (1+stim_to_area_beta)
 			if verbose:
 				print(stim + " now looks like: ") 
@@ -388,7 +388,7 @@ class Brain:
 					if j not in from_area_winners:
 						self.connectomes[from_area][name][j][area.w+i] = np.random.binomial(1,self.p)
 			area_to_area_beta = area.area_beta[from_area]
-			for i in area.new_winners:
+			for i in area._new_winners:
 				for j in from_area_winners:
 					self.connectomes[from_area][name][j][i] *= (1.0 +area_to_area_beta)
 			if verbose:
@@ -403,13 +403,13 @@ class Brain:
 				self.connectomes[other_area][name] = np.pad(self.connectomes[other_area][name], 
 					((0,0),(0,num_first_winners)), 'constant', constant_values=0)
 				for j in range(self.areas[other_area].w):
-					for i in range(area.w, area.new_w):
+					for i in range(area.w, area._new_w):
 						self.connectomes[other_area][name][j][i] = np.random.binomial(1, self.p)
 			# add num_first_winners rows, all bernoulli with probability p
 			self.connectomes[name][other_area] = np.pad(self.connectomes[name][other_area],
 				((0, num_first_winners),(0, 0)), 'constant', constant_values=0)
 			columns = len(self.connectomes[name][other_area][0])
-			for i in range(area.w, area.new_w):
+			for i in range(area.w, area._new_w):
 				for j in range(columns):
 					self.connectomes[name][other_area][i][j] = np.random.binomial(1,self.p)
 			if verbose:
