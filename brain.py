@@ -77,7 +77,8 @@ class Area:
 		self.area_beta = {}
 		# Size of the support, i.e. the number of connectomes with non-random values
 		self.w = 0
-		# List of winners currently (after previous action). Can be read by caller.
+		# List of winners currently (after previous action). Can be 
+		# read by caller.
 		self.winners = []
 		# new winners computed DURING a projection, do not use outside of internal project function
 		self._new_w = 0
@@ -252,6 +253,7 @@ class Brain:
 		# if new winners > 0, redo connectome and intra_connectomes
 		# have to wait to replace new_winners
 		#TODO Add more documentation to this function which does most of the work
+		# TODO (EDO): Handle case of projecting from an area without previous winners.
 		print(("Projecting " + ",".join(from_stimuli) + " and " + ",".join(from_areas) + " into " + area.name))
 
 		name = area.name
