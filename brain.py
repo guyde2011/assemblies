@@ -92,18 +92,18 @@ class Area:
 		self.saved_w = []
 		self.num_first_winners = -1
 
-	def update_winners(self):
+	def update_winners(self) -> None:
 		""" TODO
 		"""
 		self.winners = self._new_winners
 		self.w = self._new_w
 
-	def update_stimulus_beta(self, name: str, new_beta: float):
+	def update_stimulus_beta(self, name: str, new_beta: float) -> None:
 		""" TODO
 		"""
 		self.stimulus_beta[name] = new_beta
 
-	def update_area_beta(self, name: str, new_beta: float):
+	def update_area_beta(self, name: str, new_beta: float) -> None:
 		""" TODO
 		"""
 		self.area_beta[name] = new_beta
@@ -134,7 +134,7 @@ class Brain:
 		self.save_size = save_size
 		self.save_winners = save_winners
 
-	def add_stimulus(self, name: str, k: int):
+	def add_stimulus(self, name: str, k: int) -> None:
 		""" Initialize a random stimulus with 'k' neurons firing.
 		This stimulus can later be applied to different areas of the brain,
 		also updating its outgoing connectomes in the process.
@@ -150,7 +150,7 @@ class Brain:
 			self.areas[key].stimulus_beta[name] = self.areas[key].beta
 		self.stimuli_connectomes[name] = new_connectomes
 
-	def add_area(self, name: str, n: int, k: int, beta: float):
+	def add_area(self, name: str, n: int, k: int, beta: float) -> None:
 		"""Add an area to this brain, randomly connected to all other areas and stimulus.
 
 		The random connections are controlled by the global 'p' parameter of the brain,
@@ -178,7 +178,7 @@ class Brain:
 		self.connectomes[name] = new_connectomes
 
 	def update_plasticities(self, area_update_map: Mapping[str, List[Tuple[str, float]]] = {},
-								stim_update_map: Mapping[str, List[Tuple[str, float]]] = {}):
+								stim_update_map: Mapping[str, List[Tuple[str, float]]] = {}) -> None:
 		""" This is used to update the plasticity parameters of connectomes between areas and from stimuli into areas.
 		TODO: What about within an area? Why is it not part of this function as well?
 
@@ -200,7 +200,7 @@ class Brain:
 	# TODO: Add default values like update_plasticities method?
 	def project(self, stim_to_area: Mapping[str, List[str]],
 					area_to_area: Mapping[str, List[str]],
-					verbose=False):
+					verbose=False) -> None:
 		"""Projecting is what happens when a stimulus is applied to some area,
 		and also when a resulting assembly formed in some area fires into a separate brain area, creating a secondary stimulus, etc.
 
@@ -243,7 +243,7 @@ class Brain:
 			if self.save_size:
 				self.areas[area].saved_w.append(self.areas[area].w)
 
-	def project_into(self, area: Area, from_stimuli: List[str], from_areas: List[str], verbose: bool = False):
+	def project_into(self, area: Area, from_stimuli: List[str], from_areas: List[str], verbose: bool = False) -> int:
 		"""Project multiple stimuli and area assemblies into area 'area' at the same time.
 
 		:param area: The area projected into
