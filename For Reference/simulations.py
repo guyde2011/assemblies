@@ -23,14 +23,17 @@ from collections import OrderedDict
 
 
 def project_sim(n=1000000,k=1000,p=0.01,beta=0.05,t=50):
-    b = brain.Brain(p)
     logging.basicConfig(level=logging.INFO)
+    b = brain.Brain(p)
     b.add_stimulus("stim",k)
     b.add_area("A",n,k,beta)
+    area_a: brain.Area = b.areas["A"]
     b.project({"stim":["A"]},{})
+    support_size_list = [area_a.w]
     for i in range(t-1):
         b.project({"stim":["A"]},{"A":["A"]})
-    return b.areas["A"].saved_w
+        support_size_list.append(area_a.w)
+    return support_size_list
 
 
 def project_beta_sim(n=100000,k=317,p=0.01,t=100):
@@ -41,21 +44,27 @@ def project_beta_sim(n=100000,k=317,p=0.01,t=100):
         results[beta] = out
     return results
 
+
 def assembly_only_sim(n=100000,k=317,p=0.05,beta=0.05,project_iter=10):
     b = brain.Brain(p)
     b.add_stimulus("stim",k)
     b.add_area("A",n,k,beta)
+    area_a: brain.Area = b.areas["A"]
     b.project({"stim":["A"]},{})
+    support_size_list = [area_a.w]
     for i in range(project_iter-1):
         b.project({"stim":["A"]},{"A":["A"]})
+        support_size_list.append(area_a.w)
     for i in range(5):
         b.project({},{"A":["A"]})
-    return b.areas["A"].saved_w
+        support_size_list.append(area_a.w)
+    return support_size_list
 
 
 # alpha = percentage of (random) final assembly neurons to try firing
+# TODO: This will fail. Need to save the sizes and winners throughout this function instead of using "saved_w"
 def pattern_com(n=100000,k=317,p=0.05,beta=0.05,project_iter=10,alpha=0.5,comp_iter=1):
-    b = brain.Brain(p,save_winners=True)
+    b = brain.Brain(p)
     b.add_stimulus("stim",k)
     b.add_area("A",n,k,beta)
     b.project({"stim":["A"]},{})
@@ -69,9 +78,10 @@ def pattern_com(n=100000,k=317,p=0.05,beta=0.05,project_iter=10,alpha=0.5,comp_i
         b.project({},{"A":["A"]})
     return b.areas["A"].saved_w,b.areas["A"].saved_winners
 
+# TODO: This will fail. Need to save the sizes and winners throughout this function instead of using "saved_w"
 def pattern_com_repeated(n=100000,k=317,p=0.05,beta=0.05,project_iter=12,alpha=0.4,
                          trials=3, max_recurrent_iter=10, resample=False):
-    b = brain.Brain(p,save_winners=True)
+    b = brain.Brain(p)
     b.add_stimulus("stim",k)
     b.add_area("A",n,k,beta)
     b.project({"stim":["A"]},{})

@@ -67,8 +67,6 @@ class Area:
 		winners:
 		_new_w:
 		_new_winners:
-		saved_winners:
-		saved_w:
 		num_first_winners:
 	"""
 
@@ -88,10 +86,6 @@ class Area:
 		# new winners computed DURING a projection, do not use outside of internal project function
 		self._new_w: int = 0
 		self._new_winners: List[int] = []
-		# list of lists of all winners in each round, only saved if user asks for it
-		self.saved_winners = []
-		# list of size of support in each round, only saved if user asks for it
-		self.saved_w = []
 		self.num_first_winners = -1
 
 	def update_winners(self) -> None:
@@ -125,18 +119,14 @@ class Brain:
 		meaning neurons that had been winners in some projection (otherwise all connectomes are randomly 0 or 1).
 		connectomes: The connectome weights for each area, saved sparsely only for non-trivial neurons.
 		p: Probability of connectome (edge) existing between two neurons (vertices)
-		save_size: Whether we should keep track of the size of the support TODO Remove this or implement in a different way? It's just ugly research code
-		save_winners: TODO Remove this or implement in a different way? It's just ugly research code
 	"""
 
-	def __init__(self, p: float, save_size: bool = True, save_winners: bool = False):
+	def __init__(self, p: float):
 		self.areas = {}
 		self.stimuli = {}
 		self.stimuli_connectomes = {}
 		self.connectomes = {} 
 		self.p = p
-		self.save_size = save_size
-		self.save_winners = save_winners
 
 	def add_stimulus(self, name: str, k: int) -> None:
 		""" Initialize a random stimulus with 'k' neurons firing.
@@ -236,14 +226,10 @@ class Brain:
 		for area in to_update:
 			num_first_winners = self.project_into(self.areas[area], stim_in[area], area_in[area])
 			self.areas[area].num_first_winners = num_first_winners
-			if self.save_winners:
-				self.areas[area].saved_winners.append(self.areas[area].new_winners)
 
 		# once done everything, for each area in to_update: area.update_winners()
 		for area in to_update:
 			self.areas[area].update_winners()
-			if self.save_size:
-				self.areas[area].saved_w.append(self.areas[area].w)
 
 	def project_into(self, area: Area, from_stimuli: List[str], from_areas: List[str]) -> int:
 		"""Project multiple stimuli and area assemblies into area 'area' at the same time.
