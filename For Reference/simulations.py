@@ -29,10 +29,10 @@ def project_sim(n=1000000, k=1000, p=0.01, beta=0.05, t=50):
     b.add_area("A", n, k, beta)
     area_a: brain.Area = b.areas["A"]
     b.project({"stim": ["A"]}, {})
-    support_size_list = [area_a.w]
+    support_size_list = [area_a.support_size]
     for i in range(t - 1):
         b.project({"stim": ["A"]}, {"A": ["A"]})
-        support_size_list.append(area_a.w)
+        support_size_list.append(area_a.support_size)
     return support_size_list
 
 
@@ -51,13 +51,13 @@ def assembly_only_sim(n=100000, k=317, p=0.05, beta=0.05, project_iter=10):
     b.add_area("A", n, k, beta)
     area_a: brain.Area = b.areas["A"]
     b.project({"stim": ["A"]}, {})
-    support_size_list = [area_a.w]
+    support_size_list = [area_a.support_size]
     for i in range(project_iter - 1):
         b.project({"stim": ["A"]}, {"A": ["A"]})
-        support_size_list.append(area_a.w)
+        support_size_list.append(area_a.support_size)
     for i in range(5):
         b.project({}, {"A": ["A"]})
-        support_size_list.append(area_a.w)
+        support_size_list.append(area_a.support_size)
     return support_size_list
 
 

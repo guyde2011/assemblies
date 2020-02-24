@@ -24,6 +24,8 @@ from typing import List, Mapping, Tuple, Dict
 import numpy as np
 import heapq
 from collections import defaultdict
+
+from numpy.core._multiarray_umath import ndarray
 from scipy.stats import binom
 from scipy.stats import truncnorm
 import math
@@ -63,9 +65,9 @@ class Area:
 		beta: plasticity parameter
 		stimulus_beta:
 		area_beta:
-		w:
+		support_size:
 		winners:
-		_new_w:
+		_new_support_size:
 		_new_winners:
 		num_first_winners:
 	"""
@@ -80,13 +82,13 @@ class Area:
 		# Betas form areas into this area.
 		self.area_beta: Dict[str, float] = {}
 		# Size of the support, i.e. the number of connectomes with non-random values
-		self.w: int = 0
+		self.support_size: int = 0
 		# List of winners currently (after previous action). Can be read by caller.
 		self.winners: List[int] = []
 		# new winners computed DURING a projection, do not use outside of internal project function
-		self._new_w: int = 0
+		self._new_support_size: int = 0
 		self._new_winners: List[int] = []
-		self.num_first_winners = -1
+		self.num_first_winners: int = -1
 
 	def update_winners(self) -> None:
 		""" This function updates the list of winners for this area after a projection step.
@@ -94,7 +96,7 @@ class Area:
 		and therefore their connectomes have non-trivial values (not only zero/one).
 		"""
 		self.winners = self._new_winners
-		self.w = self._new_w
+		self.support_size = self._new_support_size
 
 	def update_stimulus_beta(self, stimulus_name: str, new_beta: float) -> None:
 		""" Updates the beta plasticity parameter for connectomes entering this area from the given stimulus.
@@ -122,11 +124,11 @@ class Brain:
 	"""
 
 	def __init__(self, p: float):
-		self.areas = {}
-		self.stimuli = {}
-		self.stimuli_connectomes = {}
-		self.connectomes = {} 
-		self.p = p
+		self.areas: Dict[str, Area] = {}
+		self.stimuli: Dict[str, Stimulus] = {}
+		self.stimuli_connectomes: Dict[str, Dict[str, ndarray]] = {}
+		self.connectomes: Dict[str, Dict[str, ndarray]] = {}
+		self.p: float = p
 
 	def add_stimulus(self, name: str, k: int) -> None:
 		""" Initialize a random stimulus with 'k' neurons firing.
@@ -137,8 +139,8 @@ class Brain:
 		:param k: Number of neurons in the stimulus
 		:return:
 		"""
-		self.stimuli[name] = Stimulus(k)
-		new_connectomes = {}
+		self.stimuli[name]: Stimulus = Stimulus(k)
+		new_connectomes: Dict[str, ndarray] = {}
 		for key in self.areas:
 			new_connectomes[key] = np.empty((0, 0))
 			self.areas[key].stimulus_beta[name] = self.areas[key].beta
@@ -162,7 +164,7 @@ class Brain:
 			stim_connectomes[name] = np.empty(0)
 			self.areas[name].stimulus_beta[stim_name] = beta
 
-		new_connectomes = {}
+		new_connectomes: Dict[str, ndarray] = {}
 		for key in self.areas:
 			new_connectomes[key] = np.empty((0, 0))
 			if key != name:
@@ -172,7 +174,7 @@ class Brain:
 		self.connectomes[name] = new_connectomes
 
 	def update_plasticities(self, area_update_map: Mapping[str, List[Tuple[str, float]]] = {},
-								stim_update_map: Mapping[str, List[Tuple[str, float]]] = {}) -> None:
+							stim_update_map: Mapping[str, List[Tuple[str, float]]] = {}) -> None:
 		""" This is used to update the plasticity parameters of connectomes between areas and from stimuli into areas.
 		TODO: What about within an area? Why is it not part of this function as well?
 
@@ -182,7 +184,7 @@ class Brain:
 		# area_update_map consists of area1: list[ (area2, new_beta) ]
 		# represents new plasticity FROM area2 INTO area1
 		for to_area, update_rules in list(area_update_map.items()):
-			for (from_area, new_beta) in update_rules: 
+			for (from_area, new_beta) in update_rules:
 				self.areas[to_area].area_beta[from_area] = new_beta
 
 		# stim_update_map consists of area: list[ (stim, new_beta) ]f
@@ -250,15 +252,15 @@ class Brain:
 		logging.info(("Projecting " + ",".join(from_stimuli) + " and " + ",".join(from_areas) + " into " + area.name))
 
 		name: str = area.name
-		prev_winner_inputs: List[float] = [0.] * area.w
+		prev_winner_inputs: List[float] = [0.] * area.support_size
 		for stim in from_stimuli:
 			stim_inputs = self.stimuli_connectomes[stim][name]
-			for i in range(area.w):
+			for i in range(area.support_size):
 				prev_winner_inputs[i] += stim_inputs[i]
 		for from_area in from_areas:
 			connectome = self.connectomes[from_area][name]
 			for w in self.areas[from_area].winners:
-				for i in range(area.w):
+				for i in range(area.support_size):
 					prev_winner_inputs[i] += connectome[w][i]
 
 		logging.debug("prev_winner_inputs: %s" % prev_winner_inputs)
@@ -281,7 +283,7 @@ class Brain:
 
 		logging.debug("total_k = " + str(total_k) + " and input_sizes = " + str(input_sizes))
 
-		effective_n = area.n - area.w
+		effective_n = area.n - area.support_size
 		# Threshold for inputs that are above (n-k)/n percentile.
 		# self.p can be changed to have a custom connectivity into this brain area.
 		alpha = binom.ppf((float(effective_n-area.k)/effective_n), total_k, self.p)
@@ -308,12 +310,12 @@ class Brain:
 		num_first_winners = 0
 		first_winner_inputs = []
 		for i in range(area.k):
-			if new_winner_indices[i] >= area.w:
-				first_winner_inputs.append(potential_new_winners[new_winner_indices[i] - area.w])
-				new_winner_indices[i] = area.w + num_first_winners
+			if new_winner_indices[i] >= area.support_size:
+				first_winner_inputs.append(potential_new_winners[new_winner_indices[i] - area.support_size])
+				new_winner_indices[i] = area.support_size + num_first_winners
 				num_first_winners += 1
 		area._new_winners = new_winner_indices
-		area._new_w = area.w + num_first_winners
+		area._new_support_size = area.support_size + num_first_winners
 
 		logging.debug("new_winners: %s" % area._new_winners)
 
@@ -339,9 +341,9 @@ class Brain:
 		for stim in from_stimuli:
 			if num_first_winners > 0:
 				self.stimuli_connectomes[stim][name] = np.resize(self.stimuli_connectomes[stim][name],
-					area.w + num_first_winners)
+																 area.support_size + num_first_winners)
 			for i in range(num_first_winners):
-				self.stimuli_connectomes[stim][name][area.w + i] = first_winner_to_inputs[i][m]
+				self.stimuli_connectomes[stim][name][area.support_size + i] = first_winner_to_inputs[i][m]
 			stim_to_area_beta = area.stimulus_beta[stim]
 			for i in area._new_winners:
 				self.stimuli_connectomes[stim][name][i] *= (1+stim_to_area_beta)
@@ -353,18 +355,18 @@ class Brain:
 			# for each i in num_first_winners, fill in (1+beta) for chosen neurons
 			# for each i in repeat_winners, for j in in_area.winners, connectome[j][i] *= (1+beta)
 		for from_area in from_areas:
-			from_area_w = self.areas[from_area].w
+			from_area_w = self.areas[from_area].support_size
 			from_area_winners = self.areas[from_area].winners
-			self.connectomes[from_area][name] = np.pad(self.connectomes[from_area][name], 
+			self.connectomes[from_area][name] = np.pad(self.connectomes[from_area][name],
 				((0,0),(0,num_first_winners)), 'constant', constant_values=0)
 			for i in range(num_first_winners):
 				total_in = first_winner_to_inputs[i][m]
 				sample_indices = random.sample(from_area_winners, int(total_in))
 				for j in range(from_area_w):
 					if j in sample_indices:
-						self.connectomes[from_area][name][j][area.w+i] = 1
+						self.connectomes[from_area][name][j][area.support_size + i] = 1
 					if j not in from_area_winners:
-						self.connectomes[from_area][name][j][area.w+i] = np.random.binomial(1,self.p)
+						self.connectomes[from_area][name][j][area.support_size + i] = np.random.binomial(1, self.p)
 			area_to_area_beta = area.area_beta[from_area]
 			for i in area._new_winners:
 				for j in from_area_winners:
@@ -376,16 +378,16 @@ class Brain:
 		# also expand connectome for area->other_area
 		for other_area in self.areas:
 			if other_area not in from_areas:
-				self.connectomes[other_area][name] = np.pad(self.connectomes[other_area][name], 
+				self.connectomes[other_area][name] = np.pad(self.connectomes[other_area][name],
 					((0,0),(0,num_first_winners)), 'constant', constant_values=0)
-				for j in range(self.areas[other_area].w):
-					for i in range(area.w, area._new_w):
+				for j in range(self.areas[other_area].support_size):
+					for i in range(area.support_size, area._new_support_size):
 						self.connectomes[other_area][name][j][i] = np.random.binomial(1, self.p)
 			# add num_first_winners rows, all bernoulli with probability p
 			self.connectomes[name][other_area] = np.pad(self.connectomes[name][other_area],
 				((0, num_first_winners),(0, 0)), 'constant', constant_values=0)
 			columns = len(self.connectomes[name][other_area][0])
-			for i in range(area.w, area._new_w):
+			for i in range(area.support_size, area._new_support_size):
 				for j in range(columns):
 					self.connectomes[name][other_area][i][j] = np.random.binomial(1, self.p)
 			logging.debug("Connectome of %s to %s is now: %s" % (name, other_area, self.connectomes[name][other_area]))
@@ -401,5 +403,5 @@ class Brain:
 
 
 
-	
+
 
