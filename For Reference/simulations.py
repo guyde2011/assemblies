@@ -78,7 +78,6 @@ def pattern_com(n=100000, k=317, p=0.05, beta=0.05, project_iter=10, alpha=0.5, 
         b.project({}, {"A": ["A"]})
     return b.areas["A"].saved_w, b.areas["A"].saved_winners
 
-
 # TODO: This will fail. Need to save the sizes and winners throughout this function instead of using "saved_w"
 def pattern_com_repeated(n=100000, k=317, p=0.05, beta=0.05, project_iter=12, alpha=0.4,
                          trials=3, max_recurrent_iter=10, resample=False):
@@ -110,7 +109,7 @@ def pattern_com_repeated(n=100000, k=317, p=0.05, beta=0.05, project_iter=12, al
 
 
 def pattern_com_alphas(n=100000, k=317, p=0.01, beta=0.05,
-                       alphas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], project_iter=25, comp_iter=5):
+                       alphas=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0), project_iter=25, comp_iter=5):
     b = brain.Brain(p)
     b.add_stimulus("stim", k)
     b.add_area("A", n, k, beta)
@@ -157,7 +156,7 @@ def pattern_com_iterations(n=100000, k=317, p=0.01, beta=0.05, alpha=0.4, comp_i
 
 # Sample command c_w,c_winners = bu.association_sim()
 def associate(n=100000, k=317, p=0.05, beta=0.1, overlap_iter=10):
-    b = brain.Brain(p, save_winners=True)
+    b = brain.Brain(p)
     b.add_stimulus("stimA", k)
     b.add_area("A", n, k, beta)
     b.add_stimulus("stimB", k)
@@ -197,7 +196,7 @@ def association_sim(n=100000, k=317, p=0.05, beta=0.1, overlap_iter=10):
 
 
 def association_grand_sim(n=100000, k=317, p=0.01, beta=0.05, min_iter=10, max_iter=20):
-    b = brain.Brain(p, save_winners=True)
+    b = brain.Brain(p)
     b.add_stimulus("stimA", k)
     b.add_area("A", n, k, beta)
     b.add_stimulus("stimB", k)
@@ -240,7 +239,7 @@ def association_grand_sim(n=100000, k=317, p=0.01, beta=0.05, min_iter=10, max_i
         results[i] = float(o) / float(k)
     return results
 
-
+# TODO: This will fail. Need to save the sizes and winners throughout this function instead of using "saved_w"
 def merge_sim(n=100000, k=317, p=0.01, beta=0.05, max_t=50):
     b = brain.Brain(p)
     b.add_stimulus("stimA", k)
