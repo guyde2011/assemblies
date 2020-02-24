@@ -20,7 +20,7 @@ This module contains classes to represent different elements of a brain simulati
 	- Assembly - TODO define and express in code
 """
 import logging
-from typing import List, Mapping, Tuple
+from typing import List, Mapping, Tuple, Dict
 import numpy as np
 import heapq
 from collections import defaultdict
@@ -39,6 +39,7 @@ class Stimulus:
 
 	Being random, the only thing the programmer needs to provide is
 	the number k of neurons that fire to create this stimulus.
+	# TODO: technical explanation needed
 
 	Attributes:
 		k: number of neurons that fire
@@ -50,15 +51,16 @@ class Stimulus:
 class Area:
 	"""Represents an individual area of the brain, with the relevant parameters.
 
+	TODO: Technical explanation.
+
 	Since it is initialized randomly, all the programmer needs to provide is the number 'n' of neurons,
 	number 'k' of winners in any given round (meaning the k neurons with heights values will fire),
 	and the parameter 'beta' of plasticity controlling connectome weight updates.
-	# TODO: Seems there are more betas, understand and explain them
 
 	Attributes:
 		n: number of neurons
 		k: number of winners
-		beta:
+		beta: plasticity parameter
 		stimulus_beta:
 		area_beta:
 		w:
@@ -69,24 +71,23 @@ class Area:
 		saved_w:
 		num_first_winners:
 	"""
+
 	def __init__(self, name: str, n: int, k: int, beta: float = 0.05):
 		self.name = name
 		self.n = n
 		self.k = k
-		# Default beta
 		self.beta = beta
 		# Betas from stimuli into this area.
-		self.stimulus_beta = {}
+		self.stimulus_beta: Dict[str, float] = {}
 		# Betas form areas into this area.
-		self.area_beta = {}
+		self.area_beta: Dict[str, float] = {}
 		# Size of the support, i.e. the number of connectomes with non-random values
-		self.w = 0
-		# List of winners currently (after previous action). Can be 
-		# read by caller.
-		self.winners = []
+		self.w: int = 0
+		# List of winners currently (after previous action). Can be read by caller.
+		self.winners: List[int] = []
 		# new winners computed DURING a projection, do not use outside of internal project function
-		self._new_w = 0
-		self._new_winners = []
+		self._new_w: int = 0
+		self._new_winners: List[int] = []
 		# list of lists of all winners in each round, only saved if user asks for it
 		self.saved_winners = []
 		# list of size of support in each round, only saved if user asks for it
@@ -259,11 +260,11 @@ class Brain:
 		# if new winners > 0, redo connectome and intra_connectomes
 		# have to wait to replace new_winners
 		# TODO Add more documentation to this function which does most of the work
-		# TODO (EDO): Handle case of projecting from an area without previous winners.
+		# TODO Handle case of projecting from an area without previous winners.
 		logging.info(("Projecting " + ",".join(from_stimuli) + " and " + ",".join(from_areas) + " into " + area.name))
 
-		name = area.name
-		prev_winner_inputs = [0.] * area.w
+		name: str = area.name
+		prev_winner_inputs: List[float] = [0.] * area.w
 		for stim in from_stimuli:
 			stim_inputs = self.stimuli_connectomes[stim][name]
 			for i in range(area.w):
