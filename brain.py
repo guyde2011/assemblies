@@ -38,10 +38,14 @@ import random
 
 class Stimulus:
 	""" Represents a random stimulus that can be applied to any part of the brain.
+	That is, a specific set of k neurons that fire together that do not reside in
+	any of the brain areas. These k neurons can be though of as representing a
+	specific input stimulus.
+	A stimulus can be connected to any areas and each pair of stimulus neuron and
+	an area neuron initially have a synapse with probability p (Brain.p).
 
-	Being random, the only thing the programmer needs to provide is
-	the number k of neurons that fire to create this stimulus.
-	# TODO: technical explanation needed
+	The data for the synaptic weights is found in the downstream areas (the areas
+	that this stimulus goes into).
 
 	Attributes:
 		k: number of neurons that fire
@@ -246,10 +250,10 @@ class Brain:
 
 		logging.debug("prev_winner_inputs: %s" % prev_winner_inputs)
 
-		# TODO: Is there a bug here related to stimulus->area connection being single-valued? Or is this not true?
 		# simulate area.k potential new winners
 		total_k: int = 0
-		input_sizes: List[int] = []
+		input_sizes: List[int] = []  	# list of the number of winners in each upstream stimulus/area,
+										# indexed in the same way as from_areas. TODO: does it makes sense?
 		for stim in from_stimuli:
 			total_k += self.stimuli[stim].k
 			input_sizes.append(self.stimuli[stim].k)
@@ -288,7 +292,7 @@ class Brain:
 		num_first_winners = 0
 		first_winner_inputs = []
 		for i in range(area.k):
-			if new_winner_indices[i] >= area.support_size:
+			if new_winner_indices[i] >= area.support_size:  # index in potential_new_winners - a new assembly neuron
 				first_winner_inputs.append(potential_new_winners[new_winner_indices[i] - area.support_size])
 				new_winner_indices[i] = area.support_size + num_first_winners
 				num_first_winners += 1
@@ -301,12 +305,13 @@ class Brain:
 		# generate where input came from
 		# 	1) can sample input from array of size total_k, use ranges
 		# 	2) can use stars/stripes method: if m total inputs, sample (m-1) out of total_k
-		first_winner_to_inputs = {}
+		first_winner_to_inputs: Dict[int, ndarray] = {}
 		for i in range(num_first_winners):
 			input_indices = random.sample(range(0, total_k), int(first_winner_inputs[i]))
-			inputs = np.zeros(len(input_sizes))
+			inputs: ndarray = np.zeros(len(input_sizes))
 			total_so_far = 0
 			for j in range(len(input_sizes)):
+				# inputs[j] is the randomly generated number of connections from the j'th input to area i.
 				inputs[j] = sum([((total_so_far + input_sizes[j]) > w >= total_so_far) for w in input_indices])
 				total_so_far += input_sizes[j]
 			first_winner_to_inputs[i] = inputs
@@ -319,7 +324,7 @@ class Brain:
 		for stim in from_stimuli:
 			if num_first_winners > 0:
 				self.stimuli_connectomes[stim][name] = np.resize(self.stimuli_connectomes[stim][name],
-																 area.support_size + num_first_winners)
+																area.support_size + num_first_winners)
 			for i in range(num_first_winners):
 				self.stimuli_connectomes[stim][name][area.support_size + i] = first_winner_to_inputs[i][m]
 			stim_to_area_beta = area.stimulus_beta[stim]
@@ -336,7 +341,8 @@ class Brain:
 			from_area_w = self.areas[from_area].support_size
 			from_area_winners = self.areas[from_area].winners
 			self.connectomes[from_area][name] = np.pad(self.connectomes[from_area][name],
-				((0,0),(0,num_first_winners)), 'constant', constant_values=0)
+														((0,0), (0,num_first_winners)),
+														'constant', constant_values=0)
 			for i in range(num_first_winners):
 				total_in = first_winner_to_inputs[i][m]
 				sample_indices = random.sample(from_area_winners, int(total_in))
