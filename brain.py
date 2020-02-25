@@ -68,7 +68,8 @@ class Area:
 		support_size:
 		winners:
 		_new_support_size:
-		_new_winners:
+		_new_winners: During the projection process, a new set of winners is formed. The winners are only
+			updated when the projection ends, so that the newly computed winners won't affect computation
 		num_first_winners:
 	"""
 
@@ -110,14 +111,12 @@ class Area:
 
 
 class Brain:
-	"""Represents a simulated brain, with it's different areas, stimulus, and all the connectome weights.
-	Being a randomly initialized brain, all the programmer needs to provide is the probability 'p' of a
-	connectome existing between any two given neurons.
+	"""Represents a simulated brain, with it's different areas, stimuli, and all the synapse weights.
 
 	Attributes:
 		areas: A mapping from area names to Area objects representing them.
 		stimuli: A mapping from stimulus names to Stimulus objects representing them.
-		stimuli_connectomes: The connectome weights for each stimulus, saved sparsely only for non-trivial neurons,
+		stimuli_connectomes: The synapse weights for each stimulus, saved sparsely only for non-trivial neurons,
 		meaning neurons that had been winners in some projection (otherwise all connectomes are randomly 0 or 1).
 		connectomes: The connectome weights for each area, saved sparsely only for non-trivial neurons.
 		p: Probability of connectome (edge) existing between two neurons (vertices)
@@ -247,27 +246,25 @@ class Brain:
 
 		logging.debug("prev_winner_inputs: %s" % prev_winner_inputs)
 
+		# TODO: Is there a bug here related to stimulus->area connection being single-valued? Or is this not true?
 		# simulate area.k potential new winners
-		total_k = 0
-		input_sizes = []
-		num_inputs = 0
+		total_k: int = 0
+		input_sizes: List[int] = []
 		for stim in from_stimuli:
 			total_k += self.stimuli[stim].k
 			input_sizes.append(self.stimuli[stim].k)
-			num_inputs += 1
 		for from_area in from_areas:
-			# if self.areas[from_area].w < self.areas[from_area].k:
+			# if self.areas[from_area].support_size < self.areas[from_area].k:
 			#	raise ValueError("Area " + from_area + "does not have enough support.")
 			effective_k = len(self.areas[from_area].winners)
 			total_k += effective_k
 			input_sizes.append(effective_k)
-			num_inputs += 1
 
 		logging.debug("total_k = " + str(total_k) + " and input_sizes = " + str(input_sizes))
 
 		effective_n = area.n - area.support_size
-		# Threshold for inputs that are above (n-k)/n percentile.
-		# self.p can be changed to have a custom connectivity into this brain area.
+		# Threshold for inputs that are above (n-k)/n percentile. alpha is the smallest number such that:
+		# 							Pr(Bin(total_k,self.p) <= alpha) >= (effective_n-area.k)/effective_n
 		alpha = binom.ppf((float(effective_n-area.k)/effective_n), total_k, self.p)
 		logging.debug(("Alpha = " + str(alpha)))
 		# use normal approximation, between alpha and total_k, round to integer
@@ -275,10 +272,9 @@ class Brain:
 		std = math.sqrt(total_k * self.p * (1.0-self.p))
 		mu = total_k * self.p
 		a = float(alpha - mu) / std
-		b = float(total_k - mu) / std
-		potential_new_winners = truncnorm.rvs(a, b, scale=std, size=area.k)
+		b = float(total_k - mu) / std  # note that b>=a and corresponds to the maximum value of Bin(total_k,self.p)
+		potential_new_winners = truncnorm.rvs(a, b, scale=std, loc=mu, size=area.k)
 		for i in range(area.k):
-			potential_new_winners[i] += mu
 			potential_new_winners[i] = round(potential_new_winners[i])
 		potential_new_winners = potential_new_winners.tolist()
 
@@ -308,9 +304,9 @@ class Brain:
 		first_winner_to_inputs = {}
 		for i in range(num_first_winners):
 			input_indices = random.sample(range(0, total_k), int(first_winner_inputs[i]))
-			inputs = np.zeros(num_inputs)
+			inputs = np.zeros(len(input_sizes))
 			total_so_far = 0
-			for j in range(num_inputs):
+			for j in range(len(input_sizes)):
 				inputs[j] = sum([((total_so_far + input_sizes[j]) > w >= total_so_far) for w in input_indices])
 				total_so_far += input_sizes[j]
 			first_winner_to_inputs[i] = inputs
