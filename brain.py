@@ -20,7 +20,7 @@ This module contains classes to represent different elements of a brain simulati
 	- Assembly - TODO define and express in code
 """
 import logging
-from typing import List, Mapping, Tuple, Dict
+from typing import List, Mapping, Tuple, Dict, Any
 import numpy as np
 import heapq
 from collections import defaultdict
@@ -137,7 +137,6 @@ class Brain:
 
 		:param name: Name used to refer to stimulus
 		:param k: Number of neurons in the stimulus
-		:return:
 		"""
 		self.stimuli[name]: Stimulus = Stimulus(k)
 		new_connectomes: Dict[str, ndarray] = {}
@@ -173,31 +172,10 @@ class Brain:
 			self.areas[name].area_beta[key] = beta
 		self.connectomes[name] = new_connectomes
 
-	def update_plasticities(self, area_update_map: Mapping[str, List[Tuple[str, float]]] = {},
-							stim_update_map: Mapping[str, List[Tuple[str, float]]] = {}) -> None:
-		""" This is used to update the plasticity parameters of connectomes between areas and from stimuli into areas.
-		TODO: What about within an area? Why is it not part of this function as well?
-
-		:param area_update_map: dictionary containing, for each area, a list of incoming betas to be updated #TODO: Example
-		:param stim_update_map: dictionary containing, for each area, a list of incoming betas to be updated #TODO: Example
-		"""
-		# area_update_map consists of area1: list[ (area2, new_beta) ]
-		# represents new plasticity FROM area2 INTO area1
-		for to_area, update_rules in list(area_update_map.items()):
-			for (from_area, new_beta) in update_rules:
-				self.areas[to_area].area_beta[from_area] = new_beta
-
-		# stim_update_map consists of area: list[ (stim, new_beta) ]f
-		# represents new plasticity FROM stim INTO area
-		for area, update_rules in list(stim_update_map.items()):
-			for (stim, new_beta) in update_rules:
-				self.areas[area].stimulus_beta[stim] = new_beta
-
-	# TODO: Add default values like update_plasticities method?
 	def project(self, stim_to_area: Mapping[str, List[str]],
 					area_to_area: Mapping[str, List[str]]) -> None:
-		"""Projecting is what happens when a stimulus is applied to some area,
-		and also when a resulting assembly formed in some area fires into a separate brain area, creating a secondary stimulus, etc.
+		""" Project is the basic operation where some stimuli and some areas are activated,
+		with only specified connections between them active.
 
 		:param stim_to_area: Dictionary that matches to each stimuli applied a list of areas to project into.
 			Example: {"stim1":["A"], "stim2":["C","A"]}
@@ -205,9 +183,12 @@ class Brain:
 			Note that an area can also be projected into itself.
 			Example: {"A":["A","B"],"C":["C","A"]}
 		"""
-		stim_in = defaultdict(lambda: [])
-		area_in = defaultdict(lambda: [])
+		stim_in: defaultdict[str, List[str]] = defaultdict(lambda: [])
+		area_in: defaultdict[str, List[str]] = defaultdict(lambda: [])
+
 		# Validate stim_area, area_area well defined
+		# Set stim_in to be the Dictionary that matches for every area the list of input stimuli.
+		# Set areas_in to be the Dictionary that matches for every area the list of input areas.
 		for stim, areas in stim_to_area.items():
 			if stim not in self.stimuli:
 				raise IndexError(stim + " not in brain.stimuli")
@@ -223,6 +204,7 @@ class Brain:
 					raise IndexError(to_area + " not in brain.areas")
 				area_in[to_area].append(from_area)
 
+		# to_update is the set of all areas that receive input
 		to_update = set().union(list(stim_in.keys()), list(area_in.keys()))
 
 		for area in to_update:
