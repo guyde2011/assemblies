@@ -234,6 +234,8 @@ class Brain:
 		# have to wait to replace new_winners
 		# TODO Add more documentation to this function which does most of the work
 		# TODO Handle case of projecting from an area without previous winners.
+		# TODO: there is a bug when adding a new stimulus later on.
+		# TODO: Stimulus is updating to somehow represent >100 neurons.
 		logging.info(("Projecting " + ",".join(from_stimuli) + " and " + ",".join(from_areas) + " into " + area.name))
 
 		name: str = area.name
