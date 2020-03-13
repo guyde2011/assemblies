@@ -8,15 +8,14 @@ This module contains classes to represent different elements of a brain simulati
 		The ones that are not random, because they were influenced by previous projections, are referred to as the 'support'.
 	- Winners in a given 'round' are the specific neurons that fired in that round.
 		In any specific area, these will be the 'k' neurons with the highest value flown into them.
-		These are also the only neurons whose connectome weights get updated. #TODO: Accurate?
+		These are also the only neurons whose connectome weights get updated.
 	- Stimulus - Represents a random stimulus that can be applied to any part of the brain.
 		When a stimulus is created it is initialized randomly, but when applied multiple times this will change.
 		This is equivalent to k neurons from an unknown part of the brain firing and their (initially, random)
 		connectomes decide how this stimulus affects a given area of the brain.
 	- Brain - A class representing a simulated brain, with it's different areas, stimulus, and all the connectome weights.
 		A brain is initialized as a random graph, and it is maintained in a 'sparse' representation,
-		meaning that all neurons that have their original, random connectome weights (0 or 1) are not saved explicitly,
-		rather handled as a group for all calculations. #TODO: Does this have any limitations?
+		meaning that all neurons that have their original, random connectome weights (0 or 1) are not saved explicitly.
 	- Assembly - TODO define and express in code
 """
 import logging
@@ -30,10 +29,6 @@ from scipy.stats import binom
 from scipy.stats import truncnorm
 import math
 import random
-
-# TODO Document all classes and methods
-# TODO Add type hints for everything
-# TODO Improve the code readability
 
 
 class Stimulus:
@@ -55,26 +50,35 @@ class Stimulus:
 
 
 class Area:
-	"""Represents an individual area of the brain, with the relevant parameters.
+	"""Represents an individual area of the brain.
 
-	TODO: Technical explanation.
+	The list of neurons that are firing is given by 'winners'. It is updated through application of 'Brain.project',
+	where the set of '_new_winners' is calculated and only updated once all brain areas settle on their new winners.
+	The winners are the 'k' neurons with the highest value going in each round.
 
-	Since it is initialized randomly, all the programmer needs to provide is the number 'n' of neurons,
+	Initially, most computation are represented implicitly. Winners are represented explicitly, and the changes in
+	their incoming synapses are maintained in 'Brain.connectomes' and 'Brain.stimuli_connectomes'. The explicit neurons
+	are represented by indices starting with 0 up to 'support_size'-1.
+
+	Since it is initialized randomly, all the programmer needs to provide for initialization is the number 'n' of neurons,
 	number 'k' of winners in any given round (meaning the k neurons with heights values will fire),
 	and the parameter 'beta' of plasticity controlling connectome weight updates.
 
+	TODO: remove '_new_winners'.
+	TODO: remove 'name'. We prefer to use variable names to refer to areas.
+
 	Attributes:
-		n: number of neurons
-		k: number of winners
-		beta: plasticity parameter
-		stimulus_beta:
-		area_beta:
-		support_size:
-		winners:
-		_new_support_size:
+		n: number of neurons in this brain area
+		k: number of winners in each round
+		beta: plasticity parameter for self-connections
+		stimulus_beta: plasticity parameters for connections from each incoming stimulus
+		area_beta: plasticity parameters for connections from each incoming area
+		support_size: The number of neurons that are represented explicitly (= total number of previous winners)
+		winners: List of current winners. That is, 'k' top neurons from previous round.
+		_new_support_size: the size of the support for the new update. Should be 'support_size' + 'num_first_winners'.
 		_new_winners: During the projection process, a new set of winners is formed. The winners are only
 			updated when the projection ends, so that the newly computed winners won't affect computation
-		num_first_winners:
+		num_first_winners: should be equal to 'len(_new_winners)'
 	"""
 
 	def __init__(self, name: str, n: int, k: int, beta: float = 0.05):
@@ -82,47 +86,36 @@ class Area:
 		self.n = n
 		self.k = k
 		self.beta = beta
-		# Betas from stimuli into this area.
 		self.stimulus_beta: Dict[str, float] = {}
-		# Betas form areas into this area.
 		self.area_beta: Dict[str, float] = {}
-		# Size of the support, i.e. the number of connectomes with non-random values
 		self.support_size: int = 0
-		# List of winners currently (after previous action). Can be read by caller.
 		self.winners: List[int] = []
-		# new winners computed DURING a projection, do not use outside of internal project function
 		self._new_support_size: int = 0
 		self._new_winners: List[int] = []
 		self.num_first_winners: int = -1
 
 	def update_winners(self) -> None:
 		""" This function updates the list of winners for this area after a projection step.
-		Each area holds a list of winners, being the neurons who have fired in previous steps,
-		and therefore their connectomes have non-trivial values (not only zero/one).
+
+			TODO: redesign this so that the list of new winners is not saved in area.
 		"""
 		self.winners = self._new_winners
 		self.support_size = self._new_support_size
-
-	def update_stimulus_beta(self, stimulus_name: str, new_beta: float) -> None:
-		""" Updates the beta plasticity parameter for connectomes entering this area from the given stimulus.
-		"""
-		self.stimulus_beta[stimulus_name] = new_beta
-
-	def update_area_beta(self, other_area_name: str, new_beta: float) -> None:
-		""" Updates the beta plasticity parameter for connectomes entering this area from the given area.
-		"""
-		self.area_beta[other_area_name] = new_beta
 
 
 class Brain:
 	"""Represents a simulated brain, with it's different areas, stimuli, and all the synapse weights.
 
+	The brain updates by selecting a subgraph of stimuli and areas, and activating only those connections.
+
+
 	Attributes:
 		areas: A mapping from area names to Area objects representing them.
 		stimuli: A mapping from stimulus names to Stimulus objects representing them.
-		stimuli_connectomes: The synapse weights for each stimulus, saved sparsely only for non-trivial neurons,
-		meaning neurons that had been winners in some projection (otherwise all connectomes are randomly 0 or 1).
-		connectomes: The connectome weights for each area, saved sparsely only for non-trivial neurons.
+		stimuli_connectomes: Maps each pair of (stimulus,area) to the ndarray representing the synaptic weights among
+			stimulus neurons and neurons in the support of area.
+		connectomes: Maps each pair of areas to the ndarray representing the synaptic weights among neurons in
+			the support.
 		p: Probability of connectome (edge) existing between two neurons (vertices)
 	"""
 
@@ -138,6 +131,9 @@ class Brain:
 		This stimulus can later be applied to different areas of the brain,
 		also updating its outgoing connectomes in the process.
 
+		Connectomes to all areas is initialized as an empty numpy array.
+		For every target area, which are all existing areas, set the plasticity coefficient, beta, to equal that area's beta.
+
 		:param name: Name used to refer to stimulus
 		:param k: Number of neurons in the stimulus
 		"""
@@ -151,19 +147,22 @@ class Brain:
 	def add_area(self, name: str, n: int, k: int, beta: float) -> None:
 		"""Add an area to this brain, randomly connected to all other areas and stimulus.
 
-		The random connections are controlled by the global 'p' parameter of the brain,
-		initializing each connectome to have a value of 0 or 1 with probability 'p'.
+		Initialize each synapse weight to have a value of 0 or 1 with probability 'p'.
+		Initialize incoming and outgoing connectomes as empty arrays.
+		Initialize incoming betas as 'beta'.
+		Initialize outgoing betas as the target area.beta
 
 		:param name: Name of area
 		:param n: Number of neurons in the new area
 		:param k: Number of winners in the new area
 		:param beta: plasticity parameter of connectomes coming INTO this area.
-				The plasticity parameter of connectomes FROM this area INTO other areas are decided by the betas of those other areas.
+				The plasticity parameter of connectomes FROM this area INTO other areas are decided by
+				the betas of those other areas.
 		"""
 		self.areas[name] = Area(name, n, k, beta)
 
 		for stim_name, stim_connectomes in self.stimuli_connectomes.items():
-			stim_connectomes[name] = np.empty(0)
+			stim_connectomes[name] = np.empty(0)  # TODO: Should this be np.empty((0,0))?
 			self.areas[name].stimulus_beta[stim_name] = beta
 
 		new_connectomes: Dict[str, ndarray] = {}
@@ -298,7 +297,7 @@ class Brain:
 				first_winner_inputs.append(potential_new_winners[new_winner_indices[i] - area.support_size])
 				new_winner_indices[i] = area.support_size + num_first_winners
 				num_first_winners += 1
-		area._new_winners = new_winner_indices
+		area._new_winners = new_winner_indices # Note that from here on 'new_winner_indices' is not in use.
 		area._new_support_size = area.support_size + num_first_winners
 
 		logging.debug("new_winners: %s" % area._new_winners)
