@@ -258,37 +258,26 @@ class Brain:
                         prev_winner_inputs[i] += connectome[w][i]
             return prev_winner_inputs
 
-        def calculate_k_and_sizes():
+        def calculate_input_sizes():
             """
-            # Calculates total_k and input_sizes
-            # total_k := sum of all incoming stimuli sizes + sum of all incoming areas winner counts
+            # Calculates input_sizes
             # input_sizes := a list containing all stimuli sizes, followed by all incoming areas winner counts
             # returns: total_k: int,
             #          input_sizes: List[int]
             :return:
             """
             input_sizes: List[int] = []
-            total_k: int = 0
-            for stim in from_stimuli:
-                total_k += self.stimuli[stim].k
-                input_sizes.append(self.stimuli[stim].k)
-            for from_area in from_areas:
-                # if self.areas[from_area].support_size < self.areas[from_area].k:
-                # raise ValueError("Area " + from_area + "does not have enough support.")
-                effective_k = len(self.areas[from_area].winners)  # len(area.winners) = area.k
-                total_k += effective_k
-                input_sizes.append(effective_k)
-            return total_k, input_sizes
-            # input_sizes = [stim.k for i, stim in enumerate(self.stimuli) if i in from_stimuli]
-            #              + [area.k for i, area in enumerate(self.areas) if i in from_areas]
-            # total_k = sum(input_sizes)
+            input_sizes = [self.stimuli[stim].k for stim in from_stimuli]
+            input_sizes += [self.areas[from_area].k for from_area in from_areas]
+            return input_sizes
 
         prev_winner_inputs: List[float] = calc_prev_winners_input()
         logging.debug(f'prev_winner_inputs: {prev_winner_inputs}')
 
         # simulate area.k potential new winners
 
-        total_k, input_sizes = calculate_k_and_sizes()  # list of the number of winners in each upstream stimulus/area,
+        input_sizes = calculate_input_sizes()  # list of the number of winners in each upstream stimulus/area,
+        total_k = sum(input_sizes)
         # indexed in the same way as from_areas. TODO: does it makes sense?
         logging.debug(f'total_k = {total_k} and input_sizes = {input_sizes}')
 
@@ -395,10 +384,11 @@ class Brain:
                 # resize connectomes stim->area to the new support size
                 self.stimuli_connectomes[stim][name] = np.resize(self.stimuli_connectomes[stim][name],
                                                                  area.support_size + num_first_winners)
-            # connectomes["first winner sti"] = how many fired from stim to area
+            # connectomes["first winner"] = how many fired from stim to this first winner
             for i in range(num_first_winners):
                 self.stimuli_connectomes[stim][name][area.support_size + i] = first_winner_to_inputs[i][m]
             stim_to_area_beta = area.stimulus_beta[stim]
+            # connectomes of winners are now stronger
             for i in area._new_winners:
                 self.stimuli_connectomes[stim][name][i] *= (1 + stim_to_area_beta)
             logging.debug(f'stimulus {stim} now looks like: {self.stimuli_connectomes[stim][name]}')
@@ -411,18 +401,26 @@ class Brain:
         for from_area in from_areas:
             from_area_w = self.areas[from_area].support_size
             from_area_winners = self.areas[from_area].winners
+            # add num_first_winners columns to the connectomes
             self.connectomes[from_area][name] = np.pad(self.connectomes[from_area][name],
                                                        ((0, 0), (0, num_first_winners)),
                                                        'constant', constant_values=0)
             for i in range(num_first_winners):
+                # total_in - how many fired from from_area to this first winner (i)
                 total_in = first_winner_to_inputs[i][m]
+                # randomize which winners in from_area fired to i
                 sample_indices = random.sample(from_area_winners, int(total_in))
                 for j in range(from_area_w):
+                    # j that fired has connectome with weight 1 (in prob 1)
                     if j in sample_indices:
                         self.connectomes[from_area][name][j][area.support_size + i] = 1
+                    # j that is not winner has connectome weight 1 in prob p
                     if j not in from_area_winners:
                         self.connectomes[from_area][name][j][area.support_size + i] = np.random.binomial(1, self.p)
+                    # j that is a winner and did not fire has connectome 0 (since otherwise, it would fire)
+
             area_to_area_beta = area.area_beta[from_area]
+            # connectomes of winners are now stronger
             for i in area._new_winners:
                 for j in from_area_winners:
                     self.connectomes[from_area][name][j][i] *= (1.0 + area_to_area_beta)

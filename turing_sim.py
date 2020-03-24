@@ -1,4 +1,4 @@
-"""
+gc"""
 This module contains some simulations made to test the possibility of implementing a general
 Turing machine using the code of this library. #TODO: Right?
 """
