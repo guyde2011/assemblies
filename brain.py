@@ -139,11 +139,8 @@ class Brain:
         :param k: Number of neurons in the stimulus
         """
         self.stimuli[name]: Stimulus = Stimulus(k)
-        new_connectomes: Dict[str, ndarray] = {}
-        for key in self.areas:
-            new_connectomes[key] = np.empty((0, 0))
-            self.areas[key].stimulus_beta[name] = self.areas[key].beta
-        self.stimuli_connectomes[name] = new_connectomes
+
+        self.conectomes_init_stimulus(self.stimuli[name], name)
 
     def add_area(self, name: str, n: int, k: int, beta: float) -> None:
         """Add an area to this brain, randomly connected to all other areas and stimulus.
@@ -162,18 +159,9 @@ class Brain:
         """
         self.areas[name] = Area(name, n, k, beta)
 
-        for stim_name, stim_connectomes in self.stimuli_connectomes.items():
-            stim_connectomes[name] = np.empty(0)  # TODO: Should this be np.empty((0,0))?
-            self.areas[name].stimulus_beta[stim_name] = beta
-
-        new_connectomes: Dict[str, ndarray] = {}
-        for key in self.areas:
-            new_connectomes[key] = np.empty((0, 0))
-            if key != name:
-                self.connectomes[key][name] = np.empty((0, 0))
-            self.areas[key].area_beta[name] = self.areas[key].beta
-            self.areas[name].area_beta[key] = beta
-        self.connectomes[name] = new_connectomes
+        # This should be replaced by conectomes_init_area(self, self.areas[name], beta).
+        # (From here to the end of the function).
+        self.conectomes_init_area(self.areas[name], beta)
 
     def project(self, stim_to_area: Mapping[str, List[str]],
                 area_to_area: Mapping[str, List[str]]) -> None:
@@ -218,6 +206,85 @@ class Brain:
         for area in to_update:
             self.areas[area].update_winners()
 
+    # Noam and Eden:
+    def conectomes_init_area(self, area: Area, beta: float):
+        # self.connectomes: Dict[str, Dict[str, ndarray]] = {}
+        # self.connectomes[area.name][other_area] = neurons: ndarray (of size (area.n, other_area.n))
+        # ndarray[i][j] = weight of connectome from neuron i (in area) to neuron j (in other area)
+        name = area.name
+        for stim_name, stim_connectomes in self.stimuli_connectomes.items():
+            stimulus: Stimulus = self.stimuli[stim_name]
+            stim_connectomes[name] = np.random.binomial(1, self.p, (stimulus.k, area.n)).astype(dtype='f')
+            self.areas[name].stimulus_beta[stim_name] = beta
+
+        new_connectomes: Dict[str, ndarray] = {}
+        for other_area_name in self.areas:
+            other_area: Area = self.areas[other_area_name]
+            new_connectomes[other_area_name] = np.random.binomial(1, self.p, (area.n, other_area.n)).astype(dtype='f')
+            if other_area_name != name:
+                self.connectomes[other_area_name][name] = np.random.binomial(1, self.p, (other_area.n, area.n)).astype(dtype='f')
+            self.areas[other_area_name].area_beta[name] = self.areas[other_area_name].beta
+            self.areas[name].area_beta[other_area_name] = beta
+        self.connectomes[name] = new_connectomes
+
+    def conectomes_init_stimulus(self, stimulus: Stimulus, name: str):
+        # self.stimuli_connectomes: Dict[str, Dict[str, ndarray]] = {}
+        # self.connectomes[self.stimuli[name]][other_area] = neurons: ndarray (of size (stimuli.k, other_area.n))
+        # ndarray[i][j] = weight of connectome from neuron i (in stimulus) to neuron j (in other area)
+
+        new_connectomes: Dict[str, ndarray] = {}
+        for key in self.areas:
+            other_area: Area = self.areas[key]
+            new_connectomes[key] = np.random.binomial(1, self.p, (stimulus.k, other_area.n)).astype(dtype='f')
+            self.areas[key].stimulus_beta[name] = self.areas[key].beta
+        self.stimuli_connectomes[name] = new_connectomes
+
+    # All of the following will be inside project_into
+    # Guy
+    def project_into_calculate_inputs(self, area: Area, from_stimuli: List[str], from_areas: List[str]):
+        prev_winner_inputs = np.zeros(area.n)
+
+        if from_areas:
+            prev_winner_inputs += sum([np.dot(np.ones(self.areas[other_area].n), self.connectomes[other_area][area.name]) for other_area in from_areas])
+
+        if from_stimuli:
+             prev_winner_inputs += sum([np.dot(np.ones(self.stimuli[stim].k), self.stimuli_connectomes[stim][area.name]) for stim in from_stimuli])
+        logging.debug(f'prev_winner_inputs: {prev_winner_inputs}')
+        return prev_winner_inputs
+
+    # Shai:
+    def project_into_calculate_winners(self, area: Area, inputs):
+        area._new_winners = heapq.nlargest(area.k, list(range(len(inputs))), inputs.__getitem__)
+        logging.debug(f'new_winners: {area._new_winners}')
+
+    # Adi
+    def project_into_update_conectomes(self, area: Area, from_stimuli: List[str], from_areas: List[str]):
+        # connectome for each stim->area
+        # for i in new_winners, stimulus_inputs[i] *= (1+beta)
+        for stim in from_stimuli:
+            beta = area.stimulus_beta[stim]
+            for i in area._new_winners:
+                for j in range(self.stimuli[stim].k):
+                    self.stimuli_connectomes[stim][area.name][j][i] *= (1 + beta)
+            logging.debug(f'stimulus {stim} now looks like: {self.stimuli_connectomes[stim][area.name]}')
+
+        # connectome for each in_area->area
+        # for each i in _new_winners, for j in in_area.winners, connectome[j][i] *= (1+beta)
+        for from_area in from_areas:
+            from_area_winners = self.areas[from_area].winners
+            beta = area.area_beta[from_area]
+            # connectomes of winners are now stronger
+            for i in area._new_winners:
+                for j in from_area_winners:
+                    self.connectomes[from_area][area.name][j][i] *= (1 + beta)
+            logging.debug(f'Connectome of {from_area} to {area.name} is now {self.connectomes[from_area][area.name]}')
+        return 0
+
+    def project_into_non_lazy(self, area: Area, from_stimuli: List[str], from_areas: List[str]):
+        inputs = self.project_into_calculate_inputs(area, from_stimuli, from_areas)
+        self.project_into_calculate_winners(area, inputs)
+        return self.project_into_update_conectomes(area, from_stimuli, from_areas)
+
     def project_into(self, area: Area, from_stimuli: List[str], from_areas: List[str]) -> int:
         """Project multiple stimuli and area assemblies into area 'area' at the same time.
 
@@ -236,215 +303,4 @@ class Brain:
         # TODO Handle case of projecting from an area without previous winners.
         # TODO: there is a bug when adding a new stimulus later on.
         # TODO: Stimulus is updating to somehow represent >100 neurons.
-        logging.info(f'Projecting {",".join(from_stimuli)} and {",".join(from_areas)} into area.name')
-        name: str = area.name
-
-        def calc_prev_winners_input():
-            """
-            Creates a list of size support_size
-            prev_winners_input[i] := sum of all incoming weights into neuron #i (0 <= i < support_size),
-            which can be coming from both stimuli and areas
-            :return: prev_winner_inputs: List[float]
-            """
-            prev_winner_inputs: List[float] = [0.] * area.support_size
-            for stim in from_stimuli:
-                stim_inputs = self.stimuli_connectomes[stim][name]
-                for i in range(area.support_size):
-                    prev_winner_inputs[i] += stim_inputs[i]
-            for from_area in from_areas:
-                connectome = self.connectomes[from_area][name]
-                for w in self.areas[from_area].winners:
-                    for i in range(area.support_size):
-                        prev_winner_inputs[i] += connectome[w][i]
-            return prev_winner_inputs
-
-        def calculate_input_sizes():
-            """
-            # Calculates input_sizes
-            # input_sizes := a list containing all stimuli sizes, followed by all incoming areas winner counts
-            # returns: total_k: int,
-            #          input_sizes: List[int]
-            :return:
-            """
-            input_sizes: List[int] = []
-            input_sizes = [self.stimuli[stim].k for stim in from_stimuli]
-            input_sizes += [self.areas[from_area].k for from_area in from_areas]
-            return input_sizes
-
-        prev_winner_inputs: List[float] = calc_prev_winners_input()
-        logging.debug(f'prev_winner_inputs: {prev_winner_inputs}')
-
-        # simulate area.k potential new winners
-
-        input_sizes = calculate_input_sizes()  # list of the number of winners in each upstream stimulus/area,
-        total_k = sum(input_sizes)
-        # indexed in the same way as from_areas. TODO: does it makes sense?
-        logging.debug(f'total_k = {total_k} and input_sizes = {input_sizes}')
-
-        # Calculate list of potential new winners
-        # We take a normal distribution centered around p * (incoming count) and truncated at
-        # [the probability that the number of neurons that aren't going to fire in the area will be lower than
-        # p * (number of neurons in the area that never fired)]
-        # and [incoming count] and sample [new winner count] of them.
-        # we return the samples rounded to the nearest integer as the list `potential_new_winners`
-        def calc_potential_new_winners():
-            # effective_n := Number of neurons that never fired in the area
-            effective_n = area.n - area.support_size
-            # Threshold for inputs that are above (n-k)/n percentile. alpha is the smallest number such that:
-            # Pr(Bin(total_k,self.p) <= alpha) >= (effective_n-area.k)/effective_n
-            # A.k.a the probability that the number of neurons that aren't going to fire in the area will be lower than
-            # p * (number of neurons in the area that never fired)
-            alpha = binom.ppf((float(effective_n - area.k) / effective_n), total_k, self.p)
-            logging.debug(f'Alpha = {alpha}')
-            # Std(Binomial(n,p)) := Sqrt(n * p * (1-p))
-            std = math.sqrt(total_k * self.p * (1.0 - self.p))
-            mu = total_k * self.p
-            a = float(alpha - mu) / std
-            b = float(total_k - mu) / std  # note that b>=a and corresponds to the maximum value of Bin(total_k,self.p)
-            # potential_new_winners := area.k samples of the normal distribution truncated in the range [a,b] and
-            # translated by mu, all divided by std
-            potential_new_winners = truncnorm.rvs(a, b, scale=std, loc=mu, size=area.k)
-            for i in range(area.k):
-                potential_new_winners[i] = round(potential_new_winners[i])
-            return potential_new_winners.tolist()
-
-        potential_new_winners = calc_potential_new_winners()  # potential_new_winners = inputs of potential new winners
-
-        # logging.debug(f'potential_new_winners: {potential_new_winners}')
-
-        def calc_new_winners(area, prev_winner_inputs, potential_new_winners):
-            '''
-            find area.k maximal values in both - these are the new winners.
-            find the ones that are winners for the first time.
-            update area._new_winners and area._new_support_size
-            :param area:
-            :param prev_winner_inputs:
-            :param potential_new_winners:
-            :return: list of inputs of the new winners (that weren't winners before)
-            '''
-            # take max among prev_winner_inputs, potential_new_winners
-            # get num_first_winners (think something small)
-            # can generate area._new_winners, note the new indices
-            both = prev_winner_inputs + potential_new_winners
-            new_winner_indices = heapq.nlargest(area.k, list(range(len(both))), both.__getitem__)
-            num_first_winners = 0
-            first_winner_inputs = []
-            for i in range(area.k):
-                if new_winner_indices[i] >= area.support_size:  # winner for the first time
-                    # index in potential_new_winners - a new assembly neuron
-                    first_winner_inputs.append(potential_new_winners[new_winner_indices[i] - area.support_size])
-                    new_winner_indices[i] = area.support_size + num_first_winners
-                    num_first_winners += 1
-            area._new_winners = new_winner_indices  # Note that from here on 'new_winner_indices' is not in use.
-            area._new_support_size = area.support_size + num_first_winners
-            return first_winner_inputs
-
-        first_winner_inputs = calc_new_winners(area, prev_winner_inputs, potential_new_winners)
-        num_first_winners = len(first_winner_inputs)
-        logging.debug(f'new_winners: {area._new_winners}')
-
-        def calculate_first_winner_to_inputs():
-            """
-            # Calculates first_winner_to_inputs
-            # first_winner_to_inputs := for each first winner i, first_winner_to_inputs[i] is a list of the number
-            # of inputs from each stimuli / area, randomly generated
-            # :returns: first_winner_to_inputs
-            """
-            # for i in num_first_winners
-            # generate where input came from
-            # 	1) can sample input from array of size total_k, use ranges
-            # 	2) can use stars/stripes method: if m total inputs, sample (m-1) out of total_k
-            first_winner_to_inputs: Dict[int, ndarray] = {}
-            for i in range(num_first_winners):
-                # first_winner_inputs[i] - how many fired into first winner # i
-                # we randomize the indices that fired
-                input_indices = random.sample(range(0, total_k), int(first_winner_inputs[i]))
-                # inputs := a randomized array of the input size from each stimuli / area
-                inputs: ndarray = np.zeros(len(input_sizes))
-                total_so_far = 0
-                for j in range(len(input_sizes)):
-                    # inputs[j] is the randomly generated number of connections from the j'th input to area i.
-                    # (adi: the above comment is probably false, not our comment)
-                    # adi: we divide the random indices to the different inputs, each input receives an amount of
-                    # input indices proportional to its size ("on average")
-                    inputs[j] = sum([(total_so_far <= w < (total_so_far + input_sizes[j])) for w in input_indices])
-                    total_so_far += input_sizes[j]
-                first_winner_to_inputs[i] = inputs
-                logging.debug(f'for first_winner #{i} with input {first_winner_inputs[i]} split as so: {inputs}')
-            return first_winner_to_inputs
-
-        first_winner_to_inputs: Dict[int, ndarray] = calculate_first_winner_to_inputs()
-
-        m = 0
-        # connectome for each stim->area
-        # add num_first_winners cells, sampled input * (1+beta)
-        # for i in repeat_winners, stimulus_inputs[i] *= (1+beta)
-        for stim in from_stimuli:
-            if num_first_winners > 0:
-                # resize connectomes stim->area to the new support size
-                self.stimuli_connectomes[stim][name] = np.resize(self.stimuli_connectomes[stim][name],
-                                                                 area.support_size + num_first_winners)
-            # connectomes["first winner"] = how many fired from stim to this first winner
-            for i in range(num_first_winners):
-                self.stimuli_connectomes[stim][name][area.support_size + i] = first_winner_to_inputs[i][m]
-            stim_to_area_beta = area.stimulus_beta[stim]
-            # connectomes of winners are now stronger
-            for i in area._new_winners:
-                self.stimuli_connectomes[stim][name][i] *= (1 + stim_to_area_beta)
-            logging.debug(f'stimulus {stim} now looks like: {self.stimuli_connectomes[stim][name]}')
-            m += 1
-
-        # connectome for each in_area->area
-        # add num_first_winners columns
-        # for each i in num_first_winners, fill in (1+beta) for chosen neurons
-        # for each i in repeat_winners, for j in in_area.winners, connectome[j][i] *= (1+beta)
-        for from_area in from_areas:
-            from_area_w = self.areas[from_area].support_size
-            from_area_winners = self.areas[from_area].winners
-            # add num_first_winners columns to the connectomes
-            self.connectomes[from_area][name] = np.pad(self.connectomes[from_area][name],
-                                                       ((0, 0), (0, num_first_winners)),
-                                                       'constant', constant_values=0)
-            for i in range(num_first_winners):
-                # total_in - how many fired from from_area to this first winner (i)
-                total_in = first_winner_to_inputs[i][m]
-                # randomize which winners in from_area fired to i
-                sample_indices = random.sample(from_area_winners, int(total_in))
-                for j in range(from_area_w):
-                    # j that fired has connectome with weight 1 (in prob 1)
-                    if j in sample_indices:
-                        self.connectomes[from_area][name][j][area.support_size + i] = 1
-                    # j that is not winner has connectome weight 1 in prob p
-                    if j not in from_area_winners:
-                        self.connectomes[from_area][name][j][area.support_size + i] = np.random.binomial(1, self.p)
-                    # j that is a winner and did not fire has connectome 0 (since otherwise, it would fire)
-
-            area_to_area_beta = area.area_beta[from_area]
-            # connectomes of winners are now stronger
-            for i in area._new_winners:
-                for j in from_area_winners:
-                    self.connectomes[from_area][name][j][i] *= (1.0 + area_to_area_beta)
-            logging.debug(f'Connectome of {from_area} to {name} is now {self.connectomes[from_area][name]}')
-            m += 1
-
-        # expand connectomes from other areas that did not fire into area
-        # also expand connectome for area->other_area
-        for other_area in self.areas:
-            if other_area not in from_areas:
-                # add num_first_winners columns to self.connectomes[other_area][name]
-                self.connectomes[other_area][name] = np.pad(self.connectomes[other_area][name],
-                                                            ((0, 0), (0, num_first_winners)), 'constant',
-                                                            constant_values=0)
-                for j in range(self.areas[other_area].support_size):
-                    for i in range(area.support_size, area._new_support_size):
-                        self.connectomes[other_area][name][j][i] = np.random.binomial(1, self.p)
-            # add num_first_winners rows, all bernoulli with probability p
-            self.connectomes[name][other_area] = np.pad(self.connectomes[name][other_area],
-                                                        ((0, num_first_winners), (0, 0)), 'constant', constant_values=0)
-            columns = len(self.connectomes[name][other_area][0])
-            for i in range(area.support_size, area._new_support_size):
-                for j in range(columns):
-                    self.connectomes[name][other_area][i][j] = np.random.binomial(1, self.p)
-            logging.debug(f'Connectome of {name} to {other_area} is now: {self.connectomes[name][other_area]}')
-
-        return num_first_winners
+        return self.project_into_non_lazy(area, from_stimuli, from_areas)

@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 
 from collections import OrderedDict
 
-
 def project_sim(n=1000000, k=1000, p=0.01, beta=0.05, t=50):
     logging.basicConfig(level=logging.INFO)
     b = brain.Brain(p)
