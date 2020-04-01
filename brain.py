@@ -18,17 +18,9 @@ This module contains classes to represent different elements of a brain simulati
         meaning that all neurons that have their original, random connectome weights (0 or 1) are not saved explicitly.
     - Assembly - TODO define and express in code
 """
-import logging
-from typing import List, Mapping, Tuple, Dict, Any
-import numpy as np
-import heapq
+from typing import List, Mapping, Dict
 from collections import defaultdict
-
 from numpy.core._multiarray_umath import ndarray
-from scipy.stats import binom
-from scipy.stats import truncnorm
-import math
-import random
 
 
 class Stimulus:
@@ -89,6 +81,7 @@ class Area:
         self.beta = beta
         self.stimulus_beta: Dict[str, float] = {}
         self.area_beta: Dict[str, float] = {}
+        self.support = [0] * self.n
         self.support_size: int = 0
         self.winners: List[int] = []
         self._new_support_size: int = 0
@@ -105,21 +98,17 @@ class Area:
 
 
 class Brain:
-    """Represents a simulated brain, with it's different areas, stimuli, and all the synapse weights.
-
-    The brain updates by selecting a subgraph of stimuli and areas, and activating only those connections.
-
+    """ Represents an abstract brain type.
 
     Attributes:
-        areas: A mapping from area names to Area objects representing them.
-        stimuli: A mapping from stimulus names to Stimulus objects representing them.
-        stimuli_connectomes: Maps each pair of (stimulus,area) to the ndarray representing the synaptic weights among
-            stimulus neurons and neurons in the support of area.
-        connectomes: Maps each pair of areas to the ndarray representing the synaptic weights among neurons in
-            the support.
-        p: Probability of connectome (edge) existing between two neurons (vertices)
+    areas: A mapping from area names to Area objects representing them.
+    stimuli: A mapping from stimulus names to Stimulus objects representing them.
+    stimuli_connectomes: Maps each pair of (stimulus,area) to the ndarray representing the synaptic weights among
+        stimulus neurons and neurons in the support of area.
+    connectomes: Maps each pair of areas to the ndarray representing the synaptic weights among neurons in
+        the support.
+    p: Probability of connectome (edge) existing between two neurons (vertices)
     """
-
     def __init__(self, p: float):
         self.areas: Dict[str, Area] = {}
         self.stimuli: Dict[str, Stimulus] = {}
@@ -128,40 +117,10 @@ class Brain:
         self.p: float = p
 
     def add_stimulus(self, name: str, k: int) -> None:
-        """ Initialize a random stimulus with 'k' neurons firing.
-        This stimulus can later be applied to different areas of the brain,
-        also updating its outgoing connectomes in the process.
-
-        Connectomes to all areas is initialized as an empty numpy array.
-        For every target area, which are all existing areas, set the plasticity coefficient, beta, to equal that area's beta.
-
-        :param name: Name used to refer to stimulus
-        :param k: Number of neurons in the stimulus
-        """
-        self.stimuli[name]: Stimulus = Stimulus(k)
-
-        self.conectomes_init_stimulus(self.stimuli[name], name)
+        pass
 
     def add_area(self, name: str, n: int, k: int, beta: float) -> None:
-        """Add an area to this brain, randomly connected to all other areas and stimulus.
-
-        Initialize each synapse weight to have a value of 0 or 1 with probability 'p'.
-        Initialize incoming and outgoing connectomes as empty arrays.
-        Initialize incoming betas as 'beta'.
-        Initialize outgoing betas as the target area.beta
-
-        :param name: Name of area
-        :param n: Number of neurons in the new area
-        :param k: Number of winners in the new area
-        :param beta: plasticity parameter of connectomes coming INTO this area.
-                The plastiity parameter of connectomes FROM this area INTO other areas are decided by
-                the betas of those other areas.
-        """
-        self.areas[name] = Area(name, n, k, beta)
-
-        # This should be replaced by conectomes_init_area(self, self.areas[name], beta).
-        # (From here to the end of the function).
-        self.conectomes_init_area(self.areas[name], beta)
+        pass
 
     def project(self, stim_to_area: Mapping[str, List[str]],
                 area_to_area: Mapping[str, List[str]]) -> None:
@@ -200,107 +159,11 @@ class Brain:
 
         for area in to_update:
             num_first_winners = self.project_into(self.areas[area], stim_in[area], area_in[area])
-            self.areas[area].num_first_winners = num_first_winners
+            self.areas[area].num_first_winners = num_first_winners  # Good Practice
 
         # once done everything, for each area in to_update: area.update_winners()
         for area in to_update:
             self.areas[area].update_winners()
 
-    # Noam and Eden:
-    def conectomes_init_area(self, area: Area, beta: float):
-        # self.connectomes: Dict[str, Dict[str, ndarray]] = {}
-        # self.connectomes[area.name][other_area] = neurons: ndarray (of size (area.n, other_area.n))
-        # ndarray[i][j] = weight of connectome from neuron i (in area) to neuron j (in other area)
-        name = area.name
-        for stim_name, stim_connectomes in self.stimuli_connectomes.items():
-            stimulus: Stimulus = self.stimuli[stim_name]
-            stim_connectomes[name] = np.random.binomial(1, self.p, (stimulus.k, area.n)).astype(dtype='f')
-            self.areas[name].stimulus_beta[stim_name] = beta
-
-        new_connectomes: Dict[str, ndarray] = {}
-        for other_area_name in self.areas:
-            other_area: Area = self.areas[other_area_name]
-            new_connectomes[other_area_name] = np.random.binomial(1, self.p, (area.n, other_area.n)).astype(dtype='f')
-            if other_area_name != name:
-                self.connectomes[other_area_name][name] = np.random.binomial(1, self.p, (other_area.n, area.n)).astype(dtype='f')
-            self.areas[other_area_name].area_beta[name] = self.areas[other_area_name].beta
-            self.areas[name].area_beta[other_area_name] = beta
-        self.connectomes[name] = new_connectomes
-
-    def conectomes_init_stimulus(self, stimulus: Stimulus, name: str):
-        # self.stimuli_connectomes: Dict[str, Dict[str, ndarray]] = {}
-        # self.connectomes[self.stimuli[name]][other_area] = neurons: ndarray (of size (stimuli.k, other_area.n))
-        # ndarray[i][j] = weight of connectome from neuron i (in stimulus) to neuron j (in other area)
-
-        new_connectomes: Dict[str, ndarray] = {}
-        for key in self.areas:
-            other_area: Area = self.areas[key]
-            new_connectomes[key] = np.random.binomial(1, self.p, (stimulus.k, other_area.n)).astype(dtype='f')
-            self.areas[key].stimulus_beta[name] = self.areas[key].beta
-        self.stimuli_connectomes[name] = new_connectomes
-
-    # All of the following will be inside project_into
-    # Guy
-    def project_into_calculate_inputs(self, area: Area, from_stimuli: List[str], from_areas: List[str]):
-        prev_winner_inputs = np.zeros(area.n)
-
-        if from_areas:
-            prev_winner_inputs += sum([np.dot(np.ones(self.areas[other_area].n), self.connectomes[other_area][area.name]) for other_area in from_areas])
-
-        if from_stimuli:
-             prev_winner_inputs += sum([np.dot(np.ones(self.stimuli[stim].k), self.stimuli_connectomes[stim][area.name]) for stim in from_stimuli])
-        logging.debug(f'prev_winner_inputs: {prev_winner_inputs}')
-        return prev_winner_inputs
-
-    # Shai:
-    def project_into_calculate_winners(self, area: Area, inputs):
-        area._new_winners = heapq.nlargest(area.k, list(range(len(inputs))), inputs.__getitem__)
-        logging.debug(f'new_winners: {area._new_winners}')
-
-    # Adi
-    def project_into_update_conectomes(self, area: Area, from_stimuli: List[str], from_areas: List[str]):
-        # connectome for each stim->area
-        # for i in new_winners, stimulus_inputs[i] *= (1+beta)
-        for stim in from_stimuli:
-            beta = area.stimulus_beta[stim]
-            for i in area._new_winners:
-                for j in range(self.stimuli[stim].k):
-                    self.stimuli_connectomes[stim][area.name][j][i] *= (1 + beta)
-            logging.debug(f'stimulus {stim} now looks like: {self.stimuli_connectomes[stim][area.name]}')
-
-        # connectome for each in_area->area
-        # for each i in _new_winners, for j in in_area.winners, connectome[j][i] *= (1+beta)
-        for from_area in from_areas:
-            from_area_winners = self.areas[from_area].winners
-            beta = area.area_beta[from_area]
-            # connectomes of winners are now stronger
-            for i in area._new_winners:
-                for j in from_area_winners:
-                    self.connectomes[from_area][area.name][j][i] *= (1 + beta)
-            logging.debug(f'Connectome of {from_area} to {area.name} is now {self.connectomes[from_area][area.name]}')
-        return 0
-
-    def project_into_non_lazy(self, area: Area, from_stimuli: List[str], from_areas: List[str]):
-        inputs = self.project_into_calculate_inputs(area, from_stimuli, from_areas)
-        self.project_into_calculate_winners(area, inputs)
-        return self.project_into_update_conectomes(area, from_stimuli, from_areas)
-
     def project_into(self, area: Area, from_stimuli: List[str], from_areas: List[str]) -> int:
-        """Project multiple stimuli and area assemblies into area 'area' at the same time.
-
-        :param area: The area projected into
-        :param from_stimuli: The stimuli that we will be applying
-        :param from_areas: List of separate areas whose assemblies we will projected into this area
-        :return: Returns the number of area neurons that were winners for the first time during this projection
-        """
-        # projecting everything in from stim_in[area] and area_in[area]
-        # calculate: inputs to self.connectomes[area] (previous winners)
-        # calculate: potential new winners, Binomial(sum of in sizes, k-top)
-        # k top of previous winners and potential new winners
-        # if new winners > 0, redo connectome and intra_connectomes
-        # have to wait to replace new_winners
-        # TODO Add more documentation to this function which does most of the work
-        # TODO Handle case of projecting from an area without previous winners.
-        # TODO: there is a bug when adding a new stimulus later on.
-        # TODO: Stimulus is updating to somehow represent >100 neurons.
-        return self.project_into_non_lazy(area, from_stimuli, from_areas)
+        return 0
