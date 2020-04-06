@@ -174,3 +174,17 @@ def test_project_num_first_winners_lazy():
     brain.project({'s': ['a']}, {})
     assert brain.areas['a'].num_first_winners == 7
 
+@bothbrains
+def test_multiple_stimuli(brain_cls):
+    k = 100; n = 10000; beta = 0.05; p = 0.01
+    b = brain_cls(p)
+    b.add_stimulus('s', k)
+    b.add_stimulus('t', k)
+    b.add_area('a', n, k, beta)
+    b.project({'s': ['a']}, {})
+    try:
+        b.project({'t': ['a']}, {'a':['a']})
+    except:
+        print('FAILED test_multiple_stimuli for class' + brain_cls.__name__)
+
+
