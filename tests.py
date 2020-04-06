@@ -187,4 +187,21 @@ def test_multiple_stimuli(brain_cls):
     except:
         print('FAILED test_multiple_stimuli for class' + brain_cls.__name__)
 
+@bothbrains
+def test_small_area(brain_cls):
+    k = 1; n = 2; beta = 0.05; p = 0.5
+    for _ in range(32):
+        b = brain_cls(p)
+        b.add_stimulus('s', k)
+        b.add_area('a', n, k, beta)
+        b.add_area('b', n, k, beta)
+        try:
+            b.project({'s': ['a']}, {})
+            b.project({'s': ['b']}, {})
+            b.project({'s': ['b']}, {'b':['a']})
+            b.project({'s': ['b']}, {'b':['b'],'a':['a','b']})
+            b.project({'s': ['a']}, {'b':['a'],'a':['a']})
+        except:
+            print('FAILED test_small_area for class' + brain_cls.__name__)
+            break
 
