@@ -7,6 +7,10 @@ Projectable = Union['Assembly', 'NamedStimulus']
 
 
 class NamedStimulus(object):
+    """ 
+    acts as a buffer between our implementation and brain.py, as the relevant
+    functions there use naming to differentiate between areas
+    """
     def __init__(self, name, stimulus):
         self.name = name
         self.stimulus = stimulus
@@ -16,6 +20,10 @@ class NamedStimulus(object):
 
 
 class Assembly(object):
+    """
+    the main assembly object. according to our implementation, the main data of an assembly
+    is his parents. we also keep a name for simulation puposes.
+    """
     def __init__(self, parents: Iterable[Projectable], area_name: str, name: str):
         self.parents: List[Projectable] = list(parents)
         self.area_name: str = area_name
@@ -29,6 +37,22 @@ class Assembly(object):
 
     @staticmethod
     def fire_many(brain: Brain, projectables: Iterable[Projectable], area_name: str):
+        """
+        params:
+        -the relevant brain object, as project is dependent on the brain instance.
+        -a list of object which are projectable (Stimuli, Areas...) which will be projected
+        -the target area's name.
+        
+        This function works by creating a "Parent tree", (Which is actually a directed acyclic graph) first, 
+        and then by going from the top layer, which will consist of stimuli, and traversing down the tree 
+        while firing each layer to areas its relevant descendant inhibit.
+        
+        For example, "firing" an assembly, we will first climb up its parent tree (Assemblies of course may have
+        multiple parents, such as results of merge. Then we iterate over the resulting list in reverse, while firing
+        each layer to the relevant areas, which are saved in a dictionary format:
+        The thing we will project: areas to project it to
+        """
+        
         layers: List[Dict[Projectable, List[str]]] = [{stuff: [area_name] for stuff in projectables}]
         while any(isinstance(ass, Assembly) for ass in layers[-1]):
             prev_layer: Iterable[Assembly] = (ass for ass in layers[-1].keys() if not isinstance(ass, NamedStimulus))
@@ -52,6 +76,9 @@ class Assembly(object):
             brain.project(stimuli_mappings, area_mappings)
 
     def project(self, brain: Brain, area_name: str) -> 'Assembly':
+        """
+        a simple case of project many, with only one projectable parameter
+        """
         projected_assembly: Assembly = Assembly([self], area_name, f"project({self.name}, {area_name})")
         Assembly.fire_many(brain, [self], area_name)
         return projected_assembly
@@ -63,6 +90,10 @@ class Assembly(object):
 
     @staticmethod
     def merge(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly', area_name: str) -> 'Assembly':
+        """
+        we create an "artificial" new assembly with x, y as parents, and then project_many
+        to its area. this will create the effect of projecting stimultaneously, as described in the paper.
+        """
         merged_assembly: Assembly = Assembly([assembly1, assembly2], area_name,
                                              f"merge({assembly1.name}, {assembly2.name}, {area_name})")
         # TODO: Decide one of the two - Consult Edo Arad
@@ -77,6 +108,12 @@ class Assembly(object):
 
     @staticmethod
     def get_reads(brain: Brain, possible_assemblies: Iterable['Assembly'], area_name: str) -> Dict['Assembly', float]:
+        """
+        simulate the calculus up to a certain point on a copy of the original brain, and return the correlation
+        of the parameters of the neurons after the effects of project with those of the original neurons.
+        the purpose is to check how quickly an assembly stabilizes.
+        ranks the list of assemblies with their correlations after the simulation.
+        """
         original_area: Area = brain.areas[area_name]
         brain_copy: Brain = deepcopy(brain)
         brain_copy.disinhibit()  # TODO: Implement (Shani's & Adi Dinerstein's groups)
@@ -98,4 +135,7 @@ class Assembly(object):
 
     @staticmethod
     def read(brain: Brain, possible_assemblies: Iterable['Assembly'], area_name: str) -> 'Assembly':
+        """
+        simply return the most "stabilized" assembly, meaning the one with highest correlation.
+        """
         return max(Assembly.get_reads(brain, possible_assemblies, area_name))
