@@ -12,19 +12,23 @@ or to used as a baseline for profiling and optimization.
 """
 
 import brain
+from lazy_brain import LazyBrain
+from non_lazy_brain import NonLazyBrain
 import brain_util as bu
 import logging
 import numpy as np
 import random
 import copy
 import matplotlib.pyplot as plt
-
 from collections import OrderedDict
 
-
-def project_sim(n=1000000, k=1000, p=0.01, beta=0.05, t=50):
+def project_sim(n=1000000, k=1000, p=0.01, beta=0.05, t=50, lazy=True):
+    if lazy:
+        brain_class = LazyBrain
+    else:
+        brain_class = NonLazyBrain
     logging.basicConfig(level=logging.INFO)
-    b = brain.Brain(p)
+    b = brain_class(p)
     b.add_stimulus("stim", k)
     b.add_area("A", n, k, beta)
     area_a: brain.Area = b.areas["A"]
