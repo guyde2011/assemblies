@@ -22,6 +22,32 @@ import copy
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 
+
+def get_default_brain_params(n=10000, k=100, p=0.01, beta=0.05):
+    b = NonLazyBrain(p)
+    return n, k, p, beta, b
+
+
+def check_hypotheses():
+    n, k, p, beta, b = get_default_brain_params()
+
+    # =========================================================================
+    # newly started area with recurrent connections does not create an assembly
+    # =========================================================================
+    print('Checking a single area recurrent projection.\nRunning 100 iterations. ')
+    b.add_area("A", n, k, beta)
+    for _ in range(10):
+        b.project({}, {"A": ["A"]})
+    print('Completed 10/100')
+    for _ in range(40):
+        b.project({}, {"A": ["A"]})
+    print('Completed 50/100')
+    for _ in range(50):
+        b.project({}, {"A": ["A"]})
+    A = b.areas["A"]
+    print(f'Expect the support to be huge. Got {A.support_size}, which is {A.support_size/k}% of k*100')
+
+
 def project_sim(n=1000000, k=1000, p=0.01, beta=0.05, t=50, lazy=True):
     if lazy:
         brain_class = LazyBrain

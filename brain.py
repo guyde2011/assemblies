@@ -100,6 +100,9 @@ class Area:
 class Brain:
     """ Represents an abstract brain type.
 
+    TODO:   The implementation should enable the creation of a brain with default choice of underlying implementation \
+            simply and implicitly unless the user is interested in that.
+
     Attributes:
     areas: A mapping from area names to Area objects representing them.
     stimuli: A mapping from stimulus names to Stimulus objects representing them.
