@@ -100,8 +100,15 @@ class Area:
 class Brain:
     """ Represents an abstract brain type.
 
-    TODO:   The implementation should enable the creation of a brain with default choice of underlying implementation \
+    TODO:   The implementation should enable the creation of a brain with default choice of underlying implementation
             simply and implicitly unless the user is interested in that.
+    TODO:   Make it easy to change plasticity rules. Specifically, I'm interested in adding the following:
+            1) Homeostasis - after each iteration reduce all weights in some process. Say w<-max(1, w/(1+beta'))
+            2) Having negative weights that strengthen whenever something (perhaps for 'almost-winners')
+            3) Capping weights.
+                Say, only update weights when w<10.
+                Say, update multiplicatively by (1+beta)(10-w)/9+(w-1)/9. (that will also converge to 10)
+
 
     Attributes:
     areas: A mapping from area names to Area objects representing them.
