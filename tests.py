@@ -198,9 +198,9 @@ def test_small_area(brain_cls):
         try:
             b.project({'s': ['a']}, {})
             b.project({'s': ['b']}, {})
-            b.project({'s': ['b']}, {'b':['a']})
-            b.project({'s': ['b']}, {'b':['b'],'a':['a','b']})
-            b.project({'s': ['a']}, {'b':['a'],'a':['a']})
+            b.project({'s': ['b']}, {'b': ['a']})
+            b.project({'s': ['b']}, {'b': ['b'], 'a': ['a', 'b']})
+            b.project({'s': ['a']}, {'b': ['a'], 'a': ['a']})
         except:
             print('FAILED test_small_area for class' + brain_cls.__name__)
             break
