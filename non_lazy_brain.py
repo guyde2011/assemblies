@@ -24,7 +24,7 @@ class NonLazyBrain(Brain):
         :param k: Number of neurons in the stimulus
         """
         self.stimuli[name]: Stimulus = Stimulus(k)
-        self.conectomes_init_stimulus(self.stimuli[name], name)
+        self.connectomes_init_stimulus(self.stimuli[name], name)
 
     def add_area(self, name: str, n: int, k: int, beta: float) -> None:
         """Add an area to this brain, randomly connected to all other areas and stimulus.
@@ -38,16 +38,15 @@ class NonLazyBrain(Brain):
         :param n: Number of neurons in the new area
         :param k: Number of winners in the new area
         :param beta: plasticity parameter of connectomes coming INTO this area.
-                The plastiity parameter of connectomes FROM this area INTO other areas are decided by
+                The plasticity parameter of connectomes FROM this area INTO other areas are decided by
                 the betas of those other areas.
         """
         self.areas[name] = Area(name, n, k, beta)
+        self.connectomes_init_area(self.areas[name], beta)
 
-        # This should be replaced by conectomes_init_area(self, self.areas[name], beta).
-        # (From here to the end of the function).
-        self.conectomes_init_area(self.areas[name], beta)
-
-    def conectomes_init_area(self, area: Area, beta: float):
+    def connectomes_init_area(self, area: Area, beta: float):
+        # TODO: Add docs.
+        #       Perhaps numpy.random.Generator.integers is faster.
         # self.connectomes: Dict[str, Dict[str, ndarray]] = {}
         # self.connectomes[area.name][other_area] = neurons: ndarray (of size (area.n, other_area.n))
         # ndarray[i][j] = weight of connectome from neuron i (in area) to neuron j (in other area)
@@ -67,7 +66,7 @@ class NonLazyBrain(Brain):
             area.area_beta[other_area_name] = beta
         self.connectomes[name] = new_connectomes
 
-    def conectomes_init_stimulus(self, stimulus: Stimulus, name: str):
+    def connectomes_init_stimulus(self, stimulus: Stimulus, name: str):
         # self.stimuli_connectomes: Dict[str, Dict[str, ndarray]] = {}
         # self.connectomes[self.stimuli[name]][other_area] = neurons: ndarray (of size (stimuli.k, other_area.n))
         # ndarray[i][j] = weight of connectome from neuron i (in stimulus) to neuron j (in other area)
@@ -82,7 +81,7 @@ class NonLazyBrain(Brain):
         Said total inputs list is saved in prev_winner_inputs
         The parameters are the same as the project_into method parameters.
         """
-
+        # TODO: wrong type - pay attention to pycharm's notifications
         prev_winner_inputs: List[float] = np.zeros(area.n)
 
         if from_areas:

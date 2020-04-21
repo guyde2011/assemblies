@@ -101,6 +101,7 @@ class LazyBrain(Brain):
             which can be coming from both stimuli and areas
             :return: prev_winner_inputs: List[float]
             """
+            # TODO: should't this be ndarray? np.zeros?
             prev_winner_inputs: List[float] = [0.] * area.support_size
             for stim in from_stimuli:
                 stim_inputs = self.stimuli_connectomes[stim][area.name]
