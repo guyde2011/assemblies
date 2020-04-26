@@ -6,7 +6,7 @@ from copy import deepcopy
 Projectable = Union['Assembly', 'NamedStimulus']
 
 
-class NamedStimulus(object):    # this is a named stimulus i think bla bla
+class NamedStimulus(object):    # hi
     """ 
     acts as a buffer between our implementation and brain.py, as the relevant
     functions there use naming to differentiate between areas
