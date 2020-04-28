@@ -23,7 +23,8 @@ import matplotlib.pyplot as plt
 from collections import OrderedDict
 
 
-def get_default_brain_params(n=10000, k=100, p=0.01, beta=0.05):
+# TODO: this is written in haste, should do something smarter
+def get_default_brain_params(n=10_000, k=100, p=0.01, beta=0.05):
     b = NonLazyBrain(p)
     return n, k, p, beta, b
 
@@ -99,7 +100,6 @@ def check_hypotheses():
           f'{len(set(B.winners).intersection(winners_stimB2))}.')
 
 
-
 def project_sim(n=1000000, k=1000, p=0.01, beta=0.05, t=50, lazy=True):
     if lazy:
         brain_class = LazyBrain
@@ -159,6 +159,7 @@ def pattern_com(n=100000, k=317, p=0.05, beta=0.05, project_iter=10, alpha=0.5, 
     for i in range(comp_iter):
         b.project({}, {"A": ["A"]})
     return b.areas["A"].saved_w, b.areas["A"].saved_winners
+
 
 # TODO: This will fail. Need to save the sizes and winners throughout this function instead of using "saved_w"
 def pattern_com_repeated(n=100000, k=317, p=0.05, beta=0.05, project_iter=12, alpha=0.4,
