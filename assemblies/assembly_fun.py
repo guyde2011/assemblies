@@ -94,6 +94,7 @@ class Assembly(object):
         we create an "artificial" new assembly with x, y as parents, and then project_many
         to its area. this will create the effect of projecting stimultaneously, as described in the paper.
         """
+        assert(assembly1.area_name != assembly2.area_name, "Areas are the same")
         merged_assembly: Assembly = Assembly([assembly1, assembly2], area_name,
                                              f"merge({assembly1.name}, {assembly2.name}, {area_name})")
         # TODO: Decide one of the two - Consult Edo Arad
