@@ -31,13 +31,7 @@ class Connectome:
     def add_brain_part(self, brain_part:BrainPart):
         self.brain_parts.append(brain_part)
 
-
-    def brain_part_connections(self, brain_part:BrainPart ) -> List[BrainPart]:
-        """
-        Retrieve all parts with connection to specific brain part, according to the current connectome.
-        :param area: BrainPart in the connectome.
-        """
-    
+   
 	def next_round(self, active_connections: Dict[BrainPart, BrainPart]):
 		"""
 		Runs one iteration of the connectome, update plasticity and winners in the connectome.
