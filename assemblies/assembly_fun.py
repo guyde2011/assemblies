@@ -6,6 +6,7 @@ from copy import deepcopy
 Projectable = Union['Assembly', 'NamedStimulus']
 
 
+
 class NamedStimulus(object):    # hi
     """ 
     acts as a buffer between our implementation and brain.py, as the relevant
@@ -41,20 +42,6 @@ class Assembly(object):
     def __hash__(self) -> int:
         return hash(self.name)
 
-
-    def repeat_t_times(self, func):
-        """
-        decorator function for repeating functions with a generic t
-        t can be either the object default (passed during init),
-        or a custom int for the specific function.
-        """
-        def repeater(*args, **kwargs):
-            if "t" in kwargs: t = kwargs["t"]
-            else: t = self.t
-            for _ in range(t-1):
-                func(*args)
-            return func(*args)
-        return repeater
 
 
     @staticmethod
@@ -168,3 +155,18 @@ class Assembly(object):
         """
         return max(Assembly.get_reads(brain, possible_assemblies, area_name))
 
+
+
+def repeat_t_times(func):
+    """
+    decorator function for repeating functions with a generic t
+    t can be either the object default (passed during init),
+    or a custom int for the specific function.
+    """
+    def repeater(*args, **kwargs):
+        if "t" in kwargs: t = kwargs["t"]
+        else: t = self.t
+        for _ in range(t-1):
+            func(*args)
+        return func(*args)
+    return repeater
