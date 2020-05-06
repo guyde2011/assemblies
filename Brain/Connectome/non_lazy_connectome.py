@@ -23,7 +23,7 @@ class NonLazyConnectome(Connectome):
         this is a subconnectome the initialize flag should be False
     """
 
-    def __init__(self, p: float, areas=None, stimuli=None, connections=None, initialize=True):
+    def __init__(self, p: float, brainparts=None, connections=None, initialize=True):
         """
         :param p: The attribute p for the probability of an edge to exits
         :param areas: list of areas
@@ -31,32 +31,40 @@ class NonLazyConnectome(Connectome):
         :param connections: Optional argument which gives active connections to the connectome
         :param initialize: Whether or not to initialize the connectome of the brain.
         """
-        super(NonLazyConnectome, self).__init__(p, areas, stimuli)
-
+        super(NonLazyConnectome, self).__init__(brainparts, connections)
+        self.p = p
         if initialize:
-            self._initialize_parts(areas + stimuli)
+            self._initialize_parts(brainparts)
 
-    def add_area(self, area: Area):
-        super(self).add_area(area)
-        self._initialize_parts([area])
+    def add_brain_part(self, brainpart: BrainPart):
+        self.brain_parts.append(brainpart)
+        self._initialize_parts([brainpart])
 
-    def add_stimulus(self, stimulus: Stimulus):
-        super(self).add_stimulus(stimulus)
-        self._initialize_parts([stimulus])
-
-    def _initialize_parts(self, parts: List[BrainPart]):
+    def _initialize_parts(self, parts: List[BrainPart], new_connections: Dict[BrainPart, List[BrainPart]):
         """
         Initialize all the connections to and from the given brain parts.
         :param parts: List of stimuli and areas to initialize
         :return:
         """
         for part in parts:
-            for other in self.areas + self.stimuli:
-                self._initialize_connection(part, other)
-                if isinstance(part, Area) and part != other:
+            others = new_connections[part]
+
+            if part.part_type == 'Area':
+                for other in filer(lambda p: p.part_type in ['Area', 'OutputArea'], others):
+                    self._initialize_connection(part, other)
+                for other in filer(lambda p: p.part_type in ['Area', 'Stimulus'] and p != part, others):
                     self._initialize_connection(other, part)
 
-    def _initialize_connection(self, part: BrainPart, area: Area):
+            if part.part_type == 'stimulus':
+                for other in filer(lambda p: p.part_type in ['Area'], others):
+                    self._initialize_connection(part, other)
+
+            if part.part_type == 'OutputArea':
+                for other in filer(lambda p: p.part_type in ['Area'], others):
+                    self._initialize_connection(other, part)
+
+
+    def _initialize_connection(self, part: BrainPart, other: BrainPart):
         """
         Initalize the connection from brain part to an area
         :param part: Stimulus or Area which the connection should come from
@@ -64,39 +72,26 @@ class NonLazyConnectome(Connectome):
         :return:
         """
         synapses = np.random.binomial(1, self.p, (part.n, area.n)).astype(dtype='f')
-        self.connections[part, area] = Connection(part, area, synapses)
+        self.connections[part, other] = Connection(part, other, synapses)
 
-    def subconnectome(self, connections: Dict[BrainPart, List[Area]]) -> Connectome:
-        areas = set([part for part in connections if isinstance(part, Area)] + list(chain(*connections.values())))
-        stimuli = [part for part in connections if isinstance(part, Stimulus)]
-        edges = [(part, area) for part in connections for area in connections[part]]
-        neural_subnet = [(edge, self.connections[edge]) for edge in edges]
-        nlc = NonLazyConnectome(self.p, areas=list(areas), stimuli=stimuli, connections=neural_subnet,
-                                initialize=False)
-        return nlc
-        # TODO fix this, this part doesn't work with the new connections implemnentation!
-        # nlc =
 
-    def area_connections(self, area: Area) -> List[BrainPart]:
-        return [source for source, dest in self.connections if dest == area]
-
-    def update_connectomes(self, new_winners: Dict[Area, List[int]], sources: Dict[Area, List[BrainPart]]) -> None:
+    def _update_connectomes(self, new_winners: Dict[BrainPart, List[int]], sources: Dict[Area, List[BrainPart]]) -> None:
         """
         Update the connectomes of the areas with new winners, based on the plasticity.
         :param new_winners: the new winners per area
         :param sources: the sources of each area
         """
-        for area in new_winners:
-            for source in sources[area]:
-                beta = source.beta if isinstance(source, Area) else area.beta
-                for i in new_winners[area]:
+        for part in new_winners:
+            for source in sources[part]:
+                beta = source.beta if source.part_type='Area' else part.beta
+                for i in new_winners[part]:
                     # update weight (*(1+beta)) for all neurons in stimulus / the winners in area
-                    source_neurons: List[int] = range(source.n) if isinstance(source, Stimulus) else source.winners
+                    source_neurons: List[int] = range(source.n) if source.part_type='Stimulus' else source.winners
                     for j in source_neurons:
-                        self.connections[source, area][j][i] *= (1 + beta)
+                        self.connections[source, part][j][i] *= (1 + beta)
                 print(f'connection {source}-{area} now looks like: {self.connections[source, area]}')
 
-    def project_into(self, area: Area, sources: List[BrainPart]) -> List[int]:
+    def project_into(self, part: BrainPart, sources: List[BrainPart]) -> List[int]:
         """Project multiple stimuli and area assemblies into area 'area' at the same time.
         :param area: The area projected into
         :param sources: List of separate brain parts whose assemblies we will projected into this area
@@ -104,10 +99,10 @@ class NonLazyConnectome(Connectome):
         """
         # Calculate the total input for each neuron from other given areas' winners and given stimuli.
         # Said total inputs list is saved in prev_winner_inputs
-        src_areas = [src for src in sources if isinstance(src, Area)]
-        src_stimuli = [src for src in sources if isinstance(src, Stimulus)]
+        src_areas = [src for src in sources if src.part_type='Area')]
+        src_stimuli = [src for src in sources if src='Stimulus')]
 
-        prev_winner_inputs: List[float] = np.zeros(area.n)
+        prev_winner_inputs: List[float] = np.zeros(part.n)
         for source in src_areas:
             area_connectomes = self.connections[source, area]
             for winner in source.winners:
@@ -119,37 +114,37 @@ class NonLazyConnectome(Connectome):
                     np.ones(
                         stim.n
                     ),
-                    self.connections[stim, area].synapses
+                    self.connections[stim, part].synapses
                 )
                 for stim in src_stimuli
             ])
 
         print(f'prev_winner_inputs: {prev_winner_inputs}')
-        return heapq.nlargest(area.k, list(range(len(prev_winner_inputs))), prev_winner_inputs.__getitem__)
+        return heapq.nlargest(part.k, list(range(len(prev_winner_inputs))), prev_winner_inputs.__getitem__)
 
-    def project(self, connections: Dict[BrainPart, List[Area]]):
+    def project(self, connections: Dict[BrainPart, List[BrainPart]]):
         """ Project is the basic operation where some stimuli and some areas are activated,
         with only specified connections between them active.
         :param connections A dictionary of connections to use in the projection, for example {area1
         """
-        sources_mapping: defaultdict[Area, List[BrainPart]] = defaultdict(lambda: [])
+        sources_mapping: defaultdict[BrainPart, List[BrainPart]] = defaultdict(lambda: [])
 
-        for part, areas in connections.items():
-            for area in areas:
-                sources_mapping[area] = sources_mapping[area] or []
-                sources_mapping[area].append(part)
+        for suorce, destinations in connections.items():
+            for dest in destinations:
+                sources_mapping[dest] = sources_mapping[dest] or []
+                sources_mapping[dest].append(source)
         # to_update is the set of all areas that receive input
         to_update = sources_mapping.keys()
 
-        new_winners: Dict[Area, List[int]] = dict()
-        for area in to_update:
-            new_winners[area] = self.project_into(area, sources_mapping[area])
-            print(f'new winners of {area}: {new_winners[area]}')
+        new_winners: Dict[BrainPart, List[int]] = dict()
+        for part in to_update:
+            new_winners[part] = self.project_into(part, sources_mapping[part])
+            print(f'new winners of {part}: {new_winners[part]}')
 
         self.update_connectomes(new_winners, sources_mapping)
 
         # once done everything, update areas winners and support
-        for area in to_update:
-            area.winners = new_winners[area]
-            for winner in new_winners[area]:
-                area.support[winner] = 1
+        for part in to_update:
+            part.winners = new_winners[part]
+            for winner in new_winners[part]:
+                part.support[winner] = 1

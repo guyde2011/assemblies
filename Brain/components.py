@@ -2,18 +2,14 @@ import math
 from typing import List, Union
 
 
-class Stimulus:
-    # Beta may be static
-    def __init__(self, n: int, beta: float):
-        self.n = n
-        self.beta = beta
-
-    def __repr__(self):
-        return f"Stimulus{(self.n, self.beta)}"
-
-
-class Area:
-    def __init__(self, n: int, k: int, beta: float=0.01):
+class BrainPart:
+    def __init__(self, part_type: str, *args, **kwargs):
+        init = {'Area': _init_area, 'Stimulus': _init_stimulus, 'OutputArea':_init_area}
+        self.part_type = part_type
+        init[self.part_type](*args, **kwargs)           
+            
+            
+    def _init_area(self, n: int, k: int, beta: float=0.01):
         self.beta: float = beta
         self.n: int = n
         self.k: int = k
@@ -24,12 +20,34 @@ class Area:
         if k < 0:
             self.k = math.sqrt(n)
 
+    # Beta may be static
+    def _init_stimulus(self, n: int, beta: float):
+        self.n = n
+        self.beta = beta
+    
+    @classmethod
+    def create_area(cls, n: int, k: int, beta: float=0.01):
+        cls('Area', n, k, beta)
+
+    @classmethod
+    def create_stimulus(cls, n: int, beta: float):
+        cls('Stimulus', n, beta)
+    
+    @classmethod
+    def create_outputarea(cls, n: int, beta: float):
+        cls('OutputArea', n, beta)
+    
+    
     def __repr__(self):
-        return f"Area{(self.n, self.k, self.beta)}"
+        attrs = []
+        for attr in [n, k, beta]:
+            if hasattr(self, attr):
+                attrs.append(attr)
+        return f"{self.part_type}(" + ','.join([str(self.attr) for attr in attrs]) + ")"
 
 
 class Connection:
-    def __init__(self, source, dest, synapses=None):
+    def __init__(self, source: BrainPart, dest: BrainPart, synapses=None):
         self.source = source
         self.dest = dest
         self.synapses = synapses
