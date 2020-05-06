@@ -51,8 +51,9 @@ class Assembly(object):
         def repeater(*args, **kwargs):
             if "t" in kwargs: t = kwargs["t"]
             else: t = self.t
-            for _ in range(t):
+            for _ in range(t-1):
                 func(*args)
+            return func(*args)
         return repeater
 
 
@@ -165,3 +166,4 @@ class Assembly(object):
         simply return the most "stabilized" assembly, meaning the one with highest correlation.
         """
         return max(Assembly.get_reads(brain, possible_assemblies, area_name))
+
