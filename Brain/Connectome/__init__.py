@@ -1,3 +1,3 @@
 from .connectome import Connectome
-from .lazy_random_connectome import LazyRandomConnectome
-from .non_lazy_random_connectome import NonLazyRandomConnectome
+from .lazy_connectome import LazyConnectome
+from .non_lazy_connectome import NonLazyConnectome
