@@ -2,15 +2,16 @@ from assemblies.brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
+
 Projectable = Union['Assembly', 'NamedStimulus']
 
 
-class NamedStimulus(object):
+
+class NamedStimulus(object):    # hi
     """ 
     acts as a buffer between our implementation and brain.py, as the relevant
     functions there use naming to differentiate between areas
     """
-
     def __init__(self, name, stimulus):
         self.name = name
         self.stimulus = stimulus
@@ -25,12 +26,18 @@ class Assembly(object):
     is his parents. we also keep a name for simulation puposes.
     """
 
-    def __init__(self, parents: Iterable[Projectable], area_name: str, name: str, support_size: int):
+    def __init__(self, parents: Iterable[Projectable], area_name: str, name: str, support_size: int, t: int = 1):
         self.parents: List[Projectable] = list(parents)
         self.area_name: str = area_name
         self.name: str = name
         self.support_size: int = support_size
         self.support: Dict[int, int] = {}
+
+        """
+        set default repeat amount (how many times to repeat each function) for
+        this assembly object.
+        """
+        self.t = t
 
     def __repr__(self) -> str:
         return self.name
@@ -95,6 +102,7 @@ class Assembly(object):
                 continue
             del self.support[neuron]
 
+    @repeat_t_times
     def project(self, brain: Brain, area_name: str) -> 'Assembly':
         """
         a simple case of project many, with only one projectable parameter
@@ -104,6 +112,7 @@ class Assembly(object):
         projected_assembly.updateSupport(brain.areas[area_name].winners)
         return projected_assembly
 
+    @repeat_t_times
     def reciprocal_project(self, brain: Brain, area_name: str) -> 'Assembly':
         projected_assembly: Assembly = self.project(brain, area_name)
         Assembly.fire_many(brain, [projected_assembly], self.area_name)
@@ -111,11 +120,13 @@ class Assembly(object):
         return projected_assembly
 
     @staticmethod
+    @repeat_t_times
     def merge(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly', area_name: str) -> 'Assembly':
         """
         we create an "artificial" new assembly with x, y as parents, and then project_many
         to its area. this will create the effect of projecting stimultaneously, as described in the paper.
         """
+        assert(assembly1.area_name != assembly2.area_name, "Areas are the same")
         merged_assembly: Assembly = Assembly([assembly1, assembly2], area_name,
                                              f"merge({assembly1.name}, {assembly2.name}, {area_name})")
         # TODO: Decide one of the two - Consult Edo Arad
@@ -124,7 +135,9 @@ class Assembly(object):
         # OR: Assembly.fire_many(assembly1.brain, assembly1.parents + assembly2.parents)
         return merged_assembly
 
+
     @staticmethod
+    @repeat_t_times
     def associate(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly'):
         assert (assembly1.area_name == assembly2.area_name, "Areas are not the same")
         Assembly.merge(brain, assembly1, assembly2, assembly1.area_name)
@@ -169,3 +182,19 @@ class Assembly(object):
         Previous code:
         return max(Assembly.get_reads(brain, possible_assemblies, area_name))
         """
+
+
+
+def repeat_t_times(func):
+    """
+    decorator function for repeating functions with a generic t
+    t can be either the object default (passed during init),
+    or a custom int for the specific function.
+    """
+    def repeater(*args, **kwargs):
+        if "t" in kwargs: t = kwargs["t"]
+        else: t = self.t
+        for _ in range(t-1):
+            func(*args)
+        return func(*args)
+    return repeater
