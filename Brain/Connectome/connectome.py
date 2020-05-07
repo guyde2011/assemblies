@@ -11,13 +11,12 @@ class Connectome:
 	Attributes:
 		brain_parts - List of all brain parts of the connectome.
 		connections - Should maintain the graph of connection between all brain parts in the connectome.
-		winners - List of winners for every brain part.
     """
 
-    def __init__(self, parts=None, connections=None, winners=None):
+    def __init__(self, parts=None, connections=None):
         self.brain_parts: List[BrainPart] = []
         self.connections: Dict[Tuple[BrainPart, BrainPart], Connection] = {}
-		self.winners: Dict[BrainPart, List[int]] = {}
+		
 
 		if brain_parts is not None:
 			self.brain_parts = brain_parts
@@ -25,20 +24,16 @@ class Connectome:
 		if connections is not None:
 			self.connections = connections
 
-		if winners is not None:
-			self.winners = winners
 		
     def add_brain_part(self, brain_part:BrainPart):
+		"""
+		Add new brain part to the connectome.
+		:param brain_part: New BrainPart object.
+		"""
         self.brain_parts.append(brain_part)
 
-
-    def brain_part_connections(self, brain_part:BrainPart ) -> List[BrainPart]:
-        """
-        Retrieve all parts with connection to specific brain part, according to the current connectome.
-        :param area: BrainPart in the connectome.
-        """
-    
-	def next_round(self, active_connections: Dict[BrainPart, BrainPart]):
+   
+	def next_round(self, active_connections: Dict[BrainPart, List[BrainPart]]):
 		"""
 		Runs one iteration of the connectome, update plasticity and winners in the connectome.
 		This will be valid only to a subset of the available connections of the brain.
