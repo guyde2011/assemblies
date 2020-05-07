@@ -26,7 +26,7 @@ class Brain:
 
 	def __init__(self, connectome, active_connectome=None):
 		self.connectome: Connectome = connectome
-		self.active_connectome: Dict[BrainPart, List[BrainPart]] = {}
+		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = {}
 		if active_connectome is not None:
 			self.active_connectome = active_connectome
 
@@ -45,7 +45,8 @@ class Brain:
 		:param source: The source brain part of the connection.
 		:param dest: The destination brain part of the connection.
 		"""
-
+		self.active_connectome[source].discard(dest)
+		
 	def inhibit_brain_part(self, brain_part: BrainPart):
 		"""
 		Inhibit the brain part, which enables it to fire to other connections in the brain.
@@ -60,6 +61,7 @@ class Brain:
 		:param source: The source brain part of the connection.
 		:param dest: The destination brain part of the connection.
 		"""
+        self.active_connectome[source].add(dest)
 
 	def disinhibit_brain_part(self, brain_part: BrainPart):
 		"""
