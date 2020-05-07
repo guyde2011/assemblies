@@ -27,7 +27,7 @@ class Connectome:
 
 	def add_brain_part(self, brain_part: BrainPart):
 		"""
-		Add new brain part to the connectome.
+		Add a new brain part to the connectome.
 		:param brain_part: New BrainPart object.
 		"""
 		self.brain_parts.append(brain_part)

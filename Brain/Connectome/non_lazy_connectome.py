@@ -1,7 +1,6 @@
-from typing import Dict, List
-import heapq
-
 from collections import defaultdict
+import heapq
+from typing import Dict, List
 
 import numpy as np
 
@@ -15,16 +14,15 @@ class NonLazyConnectome(Connectome):
     The object representing the connection in here is ndarray from numpy
 
     Attributes:
-        (All the attributes of Connectome
+        (All the attributes of Connectome)
         p: The probability for each edge of the connectome to exist
-        initialize: Whether or not to fill the connectome of the brain in each place the connections are missing. If
-        this is a subconnectome the initialize flag should be False
     """
 
-    def __init__(self, p: float, brainparts: List[BrainPart] = None,
+    def __init__(self, p: float, brain_parts: List[BrainPart] = None,
                  connections: Dict[(BrainPart, BrainPart), Connection] = None, initialize=True):
         """
         :param p: The attribute p for the probability of an edge to exits
+		:param brain_parts: Optional - Initialize list of brain parts which constructs the connectome.
         :param connections: Optional argument which gives active connections to the connectome
         :param initialize: Whether or not to initialize the connectome of the brain.
         """
@@ -131,7 +129,7 @@ class NonLazyConnectome(Connectome):
         """ 
 		Project is the basic operation where some stimuli and some areas are activated,
         with only specified connections between them active.
-        :param connections A dictionary of connections to use in the projection, for example {area1
+        :param connections: A dictionary of connections to use in the projection, for example {area1
         """
         sources_mapping: defaultdict[BrainPart, List[BrainPart]] = defaultdict(lambda: [])
 

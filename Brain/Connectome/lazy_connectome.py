@@ -5,11 +5,6 @@ from .connectome import Connectome
 
 
 class LazyConnectome(Connectome):
-	def __init__(self, p: float, areas=None, stimuli=None):
-		super(LazyConnectome, self).__init__(p, areas, stimuli)
-
-	def subconnectome(self, connections: Dict[BrainPart, Area]) -> Connectome:
-		pass
-
-	def area_connections(self, area: Area) -> List[Area]:
-		pass
+	def __init__(self, p: float, brain_parts=None, connections=None):
+		super(self, LazyConnectome).__init__(brain_parts, connections)
+		self.p = p
