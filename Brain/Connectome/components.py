@@ -52,7 +52,7 @@ class Connection:
 
 	@property
 	def beta(self):
-		if isinstance(self.source, Stimulus):
+		if self.source.part_type == 'Stimulus':
 			return self.dest.beta
 		return self.source.beta
 

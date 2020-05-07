@@ -45,14 +45,14 @@ class Brain:
 		:param source: The source brain part of the connection.
 		:param dest: The destination brain part of the connection.
 		"""
-
+		
 	def inhibit_brain_part(self, brain_part: BrainPart):
 		"""
 		Inhibit the brain part, which enables it to fire to other connections in the brain.
 		:param brain_part: BrainPart which is part of the connectome.
 		"""
 		for sink in self.connectome.brain_parts:
-			self.disinhibit_connection(brain_part, sink)
+			self.inhibit_connection(brain_part, sink)
 
 	def disinhibit_connection(self, source: BrainPart, dest: BrainPart):
 		"""
