@@ -65,7 +65,7 @@ class Brain:
 		for sink in self.connectome.brain_parts:
 			self.disinhibit(source, sink)
 
-	# Library Ext for research:
+	# Librar/y Ext for research:
 	def project(self, x: Assembly, brain_part: BrainPart) -> Assembly:
 		pass
 
