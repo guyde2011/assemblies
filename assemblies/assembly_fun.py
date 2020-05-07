@@ -1,10 +1,13 @@
+from functools import wraps
+from inspect import Parameter
+
+from assemblies.argument_manipulation import argument_restrict, argument_extend
 from brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
 
 Projectable = Union['Assembly', 'NamedStimulus']
-
 
 
 class NamedStimulus(object):    # hi
@@ -18,6 +21,26 @@ class NamedStimulus(object):    # hi
 
     def __repr__(self) -> str:
         return f"Stimulus({self.name})"
+
+
+def repeat(func):
+    """
+    Decorator for repeating a function
+    t can be either the object default (self.t),
+    or specified in execution (t should not be a parameter of the decorated function)
+    """
+    restricted_func = argument_restrict(func)
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        print(kwargs)
+        t = kwargs.get('t', self.t)
+
+        for _ in range(t):
+            restricted_func(self, *args, **kwargs)
+
+    return argument_extend(Parameter('t', Parameter.KEYWORD_ONLY, default=None, annotation=int),
+                           restrict=False)(wrapper)
 
 
 class Assembly(object):
@@ -102,7 +125,7 @@ class Assembly(object):
                 continue
             del self.support[neuron]
 
-    @repeat_t_times
+    @repeat
     def project(self, brain: Brain, area_name: str) -> 'Assembly':
         """
         a simple case of project many, with only one projectable parameter
@@ -112,7 +135,7 @@ class Assembly(object):
         projected_assembly.update_support(brain.areas[area_name].winners)
         return projected_assembly
 
-    @repeat_t_times
+    @repeat
     def reciprocal_project(self, brain: Brain, area_name: str) -> 'Assembly':
         projected_assembly: Assembly = self.project(brain, area_name)
         Assembly.fire_many(brain, [projected_assembly], self.area_name)
@@ -120,7 +143,7 @@ class Assembly(object):
         return projected_assembly
 
     @staticmethod
-    @repeat_t_times
+    @repeat
     def merge(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly', area_name: str) -> 'Assembly':
         """
         we create an "artificial" new assembly with x, y as parents, and then project_many
@@ -137,7 +160,7 @@ class Assembly(object):
 
 
     @staticmethod
-    @repeat_t_times
+    @repeat
     def associate(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly'):
         assert (assembly1.area_name == assembly2.area_name, "Areas are not the same")
         Assembly.merge(brain, assembly1, assembly2, assembly1.area_name)
@@ -182,19 +205,3 @@ class Assembly(object):
         Previous code:
         return max(Assembly.get_reads(brain, possible_assemblies, area_name))
         """
-
-
-
-def repeat_t_times(func):
-    """
-    decorator function for repeating functions with a generic t
-    t can be either the object default (passed during init),
-    or a custom int for the specific function.
-    """
-    def repeater(*args, **kwargs):
-        if "t" in kwargs: t = kwargs["t"]
-        else: t = self.t
-        for _ in range(t-1):
-            func(*args)
-        return func(*args)
-    return repeater
