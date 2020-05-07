@@ -86,7 +86,7 @@ class Assembly(object):
             brain.project(stimuli_mappings, area_mappings)
             for ass in layer:
                 if isinstance(ass, Assembly):
-                    ass.updateSupport(brain.areas[ass.area_name].winners)
+                    ass.update_support(brain.areas[ass.area_name].winners)
 
     def update_support(self, winners):
         oldest = 1
@@ -109,14 +109,14 @@ class Assembly(object):
         """
         projected_assembly: Assembly = Assembly([self], area_name, f"project({self.name}, {area_name})")
         Assembly.fire_many(brain, [self], area_name)
-        projected_assembly.updateSupport(brain.areas[area_name].winners)
+        projected_assembly.update_support(brain.areas[area_name].winners)
         return projected_assembly
 
     @repeat_t_times
     def reciprocal_project(self, brain: Brain, area_name: str) -> 'Assembly':
         projected_assembly: Assembly = self.project(brain, area_name)
         Assembly.fire_many(brain, [projected_assembly], self.area_name)
-        self.updateSupport(brain.areas[self.area_name].winners)
+        self.update_support(brain.areas[self.area_name].winners)
         return projected_assembly
 
     @staticmethod
@@ -131,7 +131,7 @@ class Assembly(object):
                                              f"merge({assembly1.name}, {assembly2.name}, {area_name})")
         # TODO: Decide one of the two - Consult Edo Arad
         Assembly.fire_many(brain, [assembly1, assembly2], area_name)
-        merged_assembly.updateSupport(brain.areas[area_name].winners)
+        merged_assembly.update_support(brain.areas[area_name].winners)
         # OR: Assembly.fire_many(assembly1.brain, assembly1.parents + assembly2.parents)
         return merged_assembly
 
