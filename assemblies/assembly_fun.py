@@ -201,7 +201,7 @@ class Assembly(object):
         """
         area = brain.areas[area_name]
         for assembly in possible_assemblies:
-            if area.winners.issubset(assembly.support):
+            if set(area.winners).issubset(assembly.support.keys()):
                 return assembly
         """
         Previous code:
