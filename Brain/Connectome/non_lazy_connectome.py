@@ -102,7 +102,8 @@ class NonLazyConnectome(Connectome):
                 print(f'connection {source}-{part} now looks like: {self.connections[source, part]}')
 
     def project_into(self, part: BrainPart, sources: List[BrainPart]) -> List[int]:
-        """Project multiple stimuli and area assemblies into area 'area' at the same time.
+        """
+		Project multiple stimuli and area assemblies into area 'area' at the same time.
         :param area: The area projected into
         :param sources: List of separate brain parts whose assemblies we will projected into this area
         :return: Returns new winners of the area
@@ -110,7 +111,7 @@ class NonLazyConnectome(Connectome):
         # Calculate the total input for each neuron from other given areas' winners and given stimuli.
         # Said total inputs list is saved in prev_winner_inputs
         src_areas = [src for src in sources if src.part_type == 'Area']
-        src_stimuli = [src for src in sources if src == 'Stimulus']
+        src_stimuli = [src for src in sources if src.part_type == 'Stimulus']
 
         prev_winner_inputs: List[float] = np.zeros(part.n)
         for source in src_areas:
@@ -127,7 +128,8 @@ class NonLazyConnectome(Connectome):
         return heapq.nlargest(part.k, list(range(len(prev_winner_inputs))), prev_winner_inputs.__getitem__)
 
     def next_round(self, connections: Dict[BrainPart, List[BrainPart]]):
-        """ Project is the basic operation where some stimuli and some areas are activated,
+        """ 
+		Project is the basic operation where some stimuli and some areas are activated,
         with only specified connections between them active.
         :param connections A dictionary of connections to use in the projection, for example {area1
         """
