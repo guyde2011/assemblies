@@ -38,7 +38,7 @@ class BrainPart:
 
 	def __repr__(self):
 		attrs = []
-		for attr in [n, k, beta]:
+		for attr in ['n', 'k', 'beta']:
 			if hasattr(self, attr):
 				attrs.append(attr)
 		return f"{self.part_type}(" + ','.join([str(self.attr) for attr in attrs]) + ")"
