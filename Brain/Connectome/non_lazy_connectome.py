@@ -23,7 +23,7 @@ class NonLazyConnectome(Connectome):
         this is a subconnectome the initialize flag should be False
     """
 
-    def __init__(self, p: float, brainparts=None, connections=None, initialize=True):
+    def __init__(self, p: float, brainparts: List[BrainPart]=None, connections: Dict[(BrainPart, Brain), Connection]=None, initialize=True):
         """
         :param p: The attribute p for the probability of an edge to exits
         :param areas: list of areas
@@ -33,12 +33,25 @@ class NonLazyConnectome(Connectome):
         """
         super(NonLazyConnectome, self).__init__(brainparts, connections)
         self.p = p
+        self.active = connections
         if initialize:
             self._initialize_parts(brainparts)
 
+    def inhibit(self, parts: List[(BrainPart, BrainPart)]):
+        for couple in parts:
+            self.active[couple] = self.connections[couple]
+
+    def disinhibit(self, parts: List[(BrainPart, BrainPart)]):
+        for couple in parts:
+            try:
+                del self.active[couple]
+            except KeyError:
+                continue
+
+            
     def add_brain_part(self, brainpart: BrainPart):
         self.brain_parts.append(brainpart)
-        self._initialize_parts([brainpart])
+        self._initialize_parts([brainpart], self.active)
 
     def _initialize_parts(self, parts: List[BrainPart], new_connections: Dict[BrainPart, List[BrainPart]):
         """
