@@ -32,7 +32,6 @@ def repeat(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        print(kwargs)
         t = kwargs.get('t', self.t)
 
         result = None
