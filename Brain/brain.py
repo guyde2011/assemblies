@@ -45,7 +45,7 @@ class Brain:
 		:param source: The source brain part of the connection.
 		:param dest: The destination brain part of the connection.
 		"""
-		
+
 	def inhibit_brain_part(self, brain_part: BrainPart):
 		"""
 		Inhibit the brain part, which enables it to fire to other connections in the brain.
