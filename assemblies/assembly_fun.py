@@ -1,4 +1,4 @@
-from assemblies.brain import *
+from brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
@@ -88,7 +88,7 @@ class Assembly(object):
                 if isinstance(ass, Assembly):
                     ass.updateSupport(brain.areas[ass.area_name].winners)
 
-    def updateSupport(self, winners):
+    def update_support(self, winners):
         oldest = 1
         for neuron in self.support:
             self.support[neuron] += 1
