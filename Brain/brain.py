@@ -39,38 +39,31 @@ class Brain:
 	next_round.__doc__ = Connectome.next_round.__doc__
 	add_brain_part.__doc__ = Connectome.add_brain_part.__doc__
 
-	def inhibit_connection(self, source: BrainPart, dest: BrainPart):
+	def inhibit(self, source: BrainPart, dest: BrainPart = None):
 		"""
-		Inhibit a single connection i.e. enabling it's firing
+		Inhibit connection between two brain parts (i.e. activate it).
+		If dest is None then all connections from the source are inhibited.
 		:param source: The source brain part of the connection.
 		:param dest: The destination brain part of the connection.
 		"""
-		self.active_connectome[source].discard(dest)
-		
-	def inhibit_brain_part(self, brain_part: BrainPart):
-		"""
-		Inhibit the brain part, which enables it to fire to other connections in the brain.
-		:param brain_part: BrainPart which is part of the connectome.
-		"""
+		if dest is not None:
+			self.active_connectome[source].discard(dest)
+			return
 		for sink in self.connectome.brain_parts:
-			self.inhibit_connection(brain_part, sink)
+			self.inhibit(source, sink)
 
-	def disinhibit_connection(self, source: BrainPart, dest: BrainPart):
+	def disinhibit(self, source: BrainPart, dest: BrainPart = None):
 		"""
-		Disinhibit a single connection i.e. disables it from firing
+		Disinhibit connection between two brain parts (i.e. deactivate it).
+		If dest is None then all connections from the source are disinhibited.
 		:param source: The source brain part of the connection.
 		:param dest: The destination brain part of the connection.
 		"""
-        self.active_connectome[source].add(dest)
-
-	def disinhibit_brain_part(self, brain_part: BrainPart):
-		"""
-		Fully disinhibit the brain_part from firing onto every other brain part.
-		The part can still be fired from other brain parts.
-		:param brain_part: BrainPart which is part of the connectome.
-		"""
+		if dest is not None:
+			self.active_connectome[source].add(dest)
+			return
 		for sink in self.connectome.brain_parts:
-			self.disinhibit_connection(brain_part, sink)
+			self.disinhibit(source, sink)
 
 	# Library Ext for research:
 	def project(self, x: Assembly, brain_part: BrainPart) -> Assembly:
