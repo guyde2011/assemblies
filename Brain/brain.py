@@ -1,8 +1,6 @@
+from typing import Dict, List
 
-from typing import Dict
-
-from .components import *
-from .Connectome import Connectome
+from .Connectome import BrainPart, Connectome
 
 
 # Library Ext team:
@@ -22,53 +20,22 @@ class Brain:
     
     Attributes:
         connectome: The full connectome of the brain, hold all the connections between the brain parts.
-        active_connectome: The current active subconnectome  of the brain, note that this connectome should be a valid
-        subconnectome of the original connectome, so the changes of on the subconnectome will reflect in the original 
-        connectome. 
-        # Optional: make the entire brain interface to depend on the actual brain parts and connections like
-        # in the original project_into.
-        winners: The last fired neurons of every area.
-        #To be continued by library ext. for research
-    
-    Advantages in using the Connectome abstraction: (TL;DR A lot of Gittik's bullshit)
-     1. Progressive disclose: When reading the previous implementation one can easily be confused about how
-        get along. By abstracting the connectome from the way it's built, we can easily understand the abstract api for 
-        connectome, understand it's methods, which makes the understanding of the brain class much easier.
-        If later we would like to know how the connectome is built, we can simply pick a subclass and read it's 
-        implementation.
-     2. Future Comparability: If later we would like to extend the api or change the underlying implementation of the 
-        connectome, we can do so, without touching the code of the brain. Just extend the connectome api or inherit it
-        with a different subclass.
-     3. Easy for benchmarking and testing: By giving few models of the brain we can hold every single implementation of
-        them simultaneously, run them in parallel. If we want to the test correctness, now we can test for Brain and
-        connectome separately.
+        active_connectome: The current active subconnectome of the brain. Gives a nice way of supporting inhibit, disinhibit.   
+	
     """
 
     def __init__(self, connectome: Connectome):
         self.connectome: Connectome = connectome
-        self.active_connectome: Connectome = connectome
-        self.winners: Dict[Area, List[int]] = {}
+        self.active_connectome: Dict[BrainPart, List[BrainPart]]
+	
+	def next_round(self, active_connections :Dict[BrainPart, BrainPart]):
+		return self.connectome.next_round(active_connections)
+	
+	def add_brain_part(self, brain_part :BrainPart):
+		return self.connectome.add_brain_part(brain_part)
 
-    def add_area(self, area: Area):
-        self.connectome.add_area(area)
-
-    def add_stimulus(self, stimulus: Stimulus):
-        self.connectome.add_stimulus(stimulus)
-
-    # Performance:
-    def next_round(self, subconnectome: Connectome = None):
-        """
-        Calculate the next set of winners in each part of the given subconnectome.
-        (Equivalent to previous project_into/project)
-
-        :param subconnectome: subgraph of the given connectome. If subconnectome is None use the active subconnectome
-        of the brain
-        :return:
-        """
-        if subconnectome is None:
-            subconnectome = self.active_connectome
-        for _ in subconnectome.areas:  # replace _ with area
-            pass
+	next_round.__doc__ = Connectome.next_round.__doc__
+	add_brain_part.__doc__ = Connectome.add_brain_part.__doc__
 
     # Library Ext for research:
     def project(self, x: Assembly, area: Area) -> Assembly:
@@ -81,4 +48,4 @@ class Brain:
         pass
 
     def merge(self, x: Assembly, y: Assembly, area: Area) -> Assembly:
-        pass
+	    pass
