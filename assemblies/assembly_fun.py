@@ -6,8 +6,6 @@ from brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
-
-
 Projectable = Union['Assembly', 'NamedStimulus']
 
 
@@ -38,7 +36,9 @@ def repeat(func):
         t = kwargs.get('t', self.t)
 
         for _ in range(t):
-            restricted_func(self, *args, **kwargs)
+            result = restricted_func(self, *args, **kwargs)
+
+        return result
 
     return argument_extend(Parameter('t', Parameter.KEYWORD_ONLY, default=None, annotation=int),
                            restrict=False)(wrapper)
@@ -198,12 +198,12 @@ class Assembly(object):
         """
         simply return the most "stabilized" assembly, meaning the one with highest correlation.
         """
-        """
-        Previous code:
-        return max(Assembly.get_reads(brain, possible_assemblies, area_name))
-        """
         area = brain.areas[area_name]
         for assembly in possible_assemblies:
             if area.winners.issubset(assembly.support):
                 return assembly
+        """
+        Previous code:
+        return max(Assembly.get_reads(brain, possible_assemblies, area_name))
+        """
         return None
