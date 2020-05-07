@@ -35,6 +35,7 @@ def repeat(func):
         print(kwargs)
         t = kwargs.get('t', self.t)
 
+        result = None
         for _ in range(t):
             result = restricted_func(self, *args, **kwargs)
 
