@@ -3,6 +3,7 @@ from typing import Iterable, Union, Optional
 from copy import deepcopy
 
 
+
 Projectable = Union['Assembly', 'NamedStimulus']
 
 
@@ -170,18 +171,19 @@ class Assembly(object):
         return assembly_reads
 
     @staticmethod
-    def read(brain: Brain, possible_assemblies: Iterable['Assembly'], area_name: str) -> 'Assembly':
+    def read(brain: Brain, possible_assemblies: Iterable['Assembly'], area_name: str) -> Optional('Assembly'):
         """
         simply return the most "stabilized" assembly, meaning the one with highest correlation.
         """
-        for assembly in possible_assemblies:
-            if area.winners.issubset(assembly.support):
-                return assembly
-        return None
         """
         Previous code:
         return max(Assembly.get_reads(brain, possible_assemblies, area_name))
         """
+        area = brain.areas[area_name]
+        for assembly in possible_assemblies:
+            if area.winners.issubset(assembly.support):
+                return assembly
+        return None
 
 
 
