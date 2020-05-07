@@ -2,7 +2,6 @@ from assemblies.brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
-
 Projectable = Union['Assembly', 'NamedStimulus']
 
 
@@ -11,6 +10,7 @@ class NamedStimulus(object):
     acts as a buffer between our implementation and brain.py, as the relevant
     functions there use naming to differentiate between areas
     """
+
     def __init__(self, name, stimulus):
         self.name = name
         self.stimulus = stimulus
@@ -24,12 +24,13 @@ class Assembly(object):
     the main assembly object. according to our implementation, the main data of an assembly
     is his parents. we also keep a name for simulation puposes.
     """
-    def __init__(self, parents: Iterable[Projectable], area_name: str, name: str, support_size : int):
+
+    def __init__(self, parents: Iterable[Projectable], area_name: str, name: str, support_size: int):
         self.parents: List[Projectable] = list(parents)
         self.area_name: str = area_name
         self.name: str = name
         self.support_size: int = support_size
-        self.support: Dict[int, int]= {}
+        self.support: Dict[int, int] = {}
 
     def __repr__(self) -> str:
         return self.name
@@ -44,17 +45,17 @@ class Assembly(object):
         -the relevant brain object, as project is dependent on the brain instance.
         -a list of object which are projectable (Stimuli, Areas...) which will be projected
         -the target area's name.
-        
-        This function works by creating a "Parent tree", (Which is actually a directed acyclic graph) first, 
-        and then by going from the top layer, which will consist of stimuli, and traversing down the tree 
+
+        This function works by creating a "Parent tree", (Which is actually a directed acyclic graph) first,
+        and then by going from the top layer, which will consist of stimuli, and traversing down the tree
         while firing each layer to areas its relevant descendant inhibit.
-        
+
         For example, "firing" an assembly, we will first climb up its parent tree (Assemblies of course may have
         multiple parents, such as results of merge. Then we iterate over the resulting list in reverse, while firing
         each layer to the relevant areas, which are saved in a dictionary format:
         The thing we will project: areas to project it to
         """
-        
+
         layers: List[Dict[Projectable, List[str]]] = [{stuff: [area_name] for stuff in projectables}]
         while any(isinstance(ass, Assembly) for ass in layers[-1]):
             prev_layer: Iterable[Assembly] = (ass for ass in layers[-1].keys() if not isinstance(ass, NamedStimulus))
@@ -68,8 +69,8 @@ class Assembly(object):
         layers = layers[::-1]
         for layer in layers:
             stimuli_mappings: Dict[str, List[str]] = {stim.name: areas
-                                                          for stim, areas in
-                                                          layer.items() if isinstance(stim, NamedStimulus)}
+                                                      for stim, areas in
+                                                      layer.items() if isinstance(stim, NamedStimulus)}
 
             area_mappings: Dict[str, List[str]] = {}
             for ass, areas in filter(lambda pair: isinstance(pair[0], Assembly), layer.items()):
@@ -93,9 +94,6 @@ class Assembly(object):
             if self.support[neuron] < oldest:
                 continue
             del self.support[neuron]
-
-
-
 
     def project(self, brain: Brain, area_name: str) -> 'Assembly':
         """
@@ -128,7 +126,7 @@ class Assembly(object):
 
     @staticmethod
     def associate(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly'):
-        assert(assembly1.area_name == assembly2.area_name, "Areas are not the same")
+        assert (assembly1.area_name == assembly2.area_name, "Areas are not the same")
         Assembly.merge(brain, assembly1, assembly2, assembly1.area_name)
 
     @staticmethod
