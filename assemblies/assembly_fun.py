@@ -194,7 +194,7 @@ class Assembly(object):
         return assembly_reads
 
     @staticmethod
-    def read(brain: Brain, possible_assemblies: Iterable['Assembly'], area_name: str) -> Optional('Assembly'):
+    def read(brain: Brain, possible_assemblies: Iterable['Assembly'], area_name: str) -> Optional['Assembly']:
         """
         simply return the most "stabilized" assembly, meaning the one with highest correlation.
         """
