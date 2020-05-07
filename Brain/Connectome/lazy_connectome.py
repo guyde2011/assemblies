@@ -1,16 +1,12 @@
-from numpy.core._multiarray_umath import ndarray
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
-from wrapt import ObjectProxy
-
-from ..components import Area, BrainPart, Stimulus
+from .components import BrainPart
 from .connectome import Connectome
 
 
 class LazyConnectome(Connectome):
 	def __init__(self, p: float, areas=None, stimuli=None):
 		super(LazyConnectome, self).__init__(p, areas, stimuli)
-
 
 	def subconnectome(self, connections: Dict[BrainPart, Area]) -> Connectome:
 		pass
