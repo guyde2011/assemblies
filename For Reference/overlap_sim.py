@@ -22,13 +22,12 @@
  Now with 4th area D: proj(proj(x,C),D) and proj(proj(y,C),D) for 1 time ste
 """
 
-
-import brain
+from assemblies import brain
 import brain_util as bu
 import copy
 
 def overlap_sim(n=100000,k=317,p=0.05,beta=0.1,project_iter=10):
-	b = brain.Brain(p,save_winners=True)
+	b = brain.Brain(p, save_winners=True)
 	b.add_stimulus("stimA",k)
 	b.add_area("A",n,k,beta)
 	b.add_stimulus("stimB",k)
@@ -73,7 +72,7 @@ def overlap_sim(n=100000,k=317,p=0.05,beta=0.1,project_iter=10):
 	return assembly_overlap, proj_overlap
 
 def overlap_grand_sim(n=100000,k=317,p=0.01,beta=0.05,min_iter=10,max_iter=30):
-	b = brain.Brain(p,save_winners=True)
+	b = brain.Brain(p, save_winners=True)
 	b.add_stimulus("stimA",k)
 	b.add_area("A",n,k,beta)
 	b.add_stimulus("stimB",k)

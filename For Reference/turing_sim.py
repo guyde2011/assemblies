@@ -3,7 +3,7 @@ This module contains some simulations made to test the possibility of implementi
 Turing machine using the code of this library. #TODO: Right?
 """
 
-import brain
+from assemblies import brain
 import brain_util as bu
 
 def larger_k(n=10000,k=100,p=0.01,beta=0.05, bigger_factor=10):

@@ -1,4 +1,4 @@
-from brain import *
+from assemblies.brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
@@ -24,10 +24,12 @@ class Assembly(object):
     the main assembly object. according to our implementation, the main data of an assembly
     is his parents. we also keep a name for simulation puposes.
     """
-    def __init__(self, parents: Iterable[Projectable], area_name: str, name: str):
+    def __init__(self, parents: Iterable[Projectable], area_name: str, name: str, support_size : int):
         self.parents: List[Projectable] = list(parents)
         self.area_name: str = area_name
         self.name: str = name
+        self.support_size: int = support_size
+        self.support: Dict[int, int]= {}
 
     def __repr__(self) -> str:
         return self.name
@@ -74,6 +76,26 @@ class Assembly(object):
                 area_mappings[ass.area_name] = area_mappings.get(ass.area_name, []) + areas
 
             brain.project(stimuli_mappings, area_mappings)
+            for ass in layer:
+                if isinstance(ass, Assembly):
+                    ass.updateSupport(brain.areas[ass.area_name].winners)
+
+    def updateSupport(self, winners):
+        oldest = 1
+        for neuron in self.support:
+            self.support[neuron] += 1
+            oldest = max(oldest, self.support[neuron])
+        for neuron in winners:
+            self.support[neuron] = 1
+        if len(self.support) <= self.support_size:
+            return
+        for neuron in self.support:
+            if self.support[neuron] < oldest:
+                continue
+            del self.support[neuron]
+
+
+
 
     def project(self, brain: Brain, area_name: str) -> 'Assembly':
         """
@@ -81,11 +103,13 @@ class Assembly(object):
         """
         projected_assembly: Assembly = Assembly([self], area_name, f"project({self.name}, {area_name})")
         Assembly.fire_many(brain, [self], area_name)
+        projected_assembly.updateSupport(brain.areas[area_name].winners)
         return projected_assembly
 
     def reciprocal_project(self, brain: Brain, area_name: str) -> 'Assembly':
         projected_assembly: Assembly = self.project(brain, area_name)
         Assembly.fire_many(brain, [projected_assembly], self.area_name)
+        self.updateSupport(brain.areas[self.area_name].winners)
         return projected_assembly
 
     @staticmethod
@@ -98,6 +122,7 @@ class Assembly(object):
                                              f"merge({assembly1.name}, {assembly2.name}, {area_name})")
         # TODO: Decide one of the two - Consult Edo Arad
         Assembly.fire_many(brain, [assembly1, assembly2], area_name)
+        merged_assembly.updateSupport(brain.areas[area_name].winners)
         # OR: Assembly.fire_many(assembly1.brain, assembly1.parents + assembly2.parents)
         return merged_assembly
 
@@ -138,4 +163,11 @@ class Assembly(object):
         """
         simply return the most "stabilized" assembly, meaning the one with highest correlation.
         """
+        for assembly in possible_assemblies:
+            if area.winners.issubset(assembly.support):
+                return assembly
+        return None
+        """
+        Previous code:
         return max(Assembly.get_reads(brain, possible_assemblies, area_name))
+        """

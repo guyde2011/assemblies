@@ -65,3 +65,5 @@ def assemblies_simulation(n=1000000, k=1000, p=0.1, beta=0.05, t=100) -> Brain:
         print("Read is unimplemented!")
 
     return brain
+
+assemblies_simulation()

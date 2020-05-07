@@ -11,7 +11,7 @@ All of these can be used for testing the library, to perform experiments for res
 or to used as a baseline for profiling and optimization.
 """
 
-import brain
+from assemblies import brain
 import brain_util as bu
 import logging
 import numpy as np
