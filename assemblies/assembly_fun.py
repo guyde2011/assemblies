@@ -207,3 +207,43 @@ class Assembly(object):
         return max(Assembly.get_reads(brain, possible_assemblies, area_name))
         """
         return None
+
+
+    """
+    overriding arithmetic methods ( + , >> , <<) to make using common
+    assembly operations easier.
+    """
+
+    """
+    small class to represent many assemblies, to be fired with >> into an area.
+    USAGE EXAMPLE: (ass1+ass2+ass3+ass4)>>"area name"
+    """
+    class AssemblyTuple(object):
+        def __init__(self, lst):
+            self.dat = lst
+
+        def __add__(self,other):
+            assert isinstance(other, Projectable)
+            return AssemblyTuple(self.dat + other)
+
+        def __rshift__(self, other):
+            assert isinstance(other,str)
+            Assembly.fire_many(*dat,other)
+
+
+    # ass1 < ass2 <=> ass1 is a child of ass2
+    def __lt__(self, other):
+        return other in self.parents
+
+    #symmetric
+    def __gt__(self, other):
+        return self in other.parents
+
+    #an assembly is defined by its area and parents.
+    def __eq__(self, other):
+        if not isinstance(other,Assembly): return False
+        return set(self.parents) == set(other.parents) and self.area_name == other.area_name
+
+
+    def __add__(self,other):
+        return AssemblyTuple(self,other)
