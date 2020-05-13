@@ -3,11 +3,6 @@ from typing import Dict, List
 from .Connectome import BrainPart, Connectome
 
 
-# Library Ext team:
-class Assembly:
-	pass
-
-
 class Brain:
 	T = 10
 	"""
@@ -26,7 +21,7 @@ class Brain:
 
 	def __init__(self, connectome, active_connectome=None):
 		self.connectome: Connectome = connectome
-		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = {}
+		self.active_connectome: Dict[BrainPart, set[BrainPart]] = {}
 		if active_connectome is not None:
 			self.active_connectome = active_connectome
 
@@ -64,16 +59,3 @@ class Brain:
 			return
 		for sink in self.connectome.brain_parts:
 			self.disinhibit(source, sink)
-
-	# Librar/y Ext for research:
-	def project(self, x: Assembly, brain_part: BrainPart) -> Assembly:
-		pass
-
-	def reciprocal_project(self, x: Assembly, brain_part: BrainPart) -> Assembly:
-		pass
-
-	def association(self, x: Assembly, y: Assembly):
-		pass
-
-	def merge(self, x: Assembly, y: Assembly, area: BrainPart) -> Assembly:
-		pass

@@ -1,14 +1,17 @@
 import math
 from typing import List
 
+from Brain.brain import Brain
+
 
 class BrainPart:
-	def __init__(self, part_type: str, *args, **kwargs):
+	def __init__(self, part_type: str, brain: Brain, *args, **kwargs):
 		init = {'Area': self._init_area, 'Stimulus': self._init_stimulus, 'OutputArea': self._init_area}
 		self.part_type = part_type
 		init[self.part_type](*args, **kwargs)
+		self.brain = brain
 
-	def _init_area(self, n: int, k: int, beta: float = 0.01):
+	def _init_area(self, n: int, k: int = 0, beta: float = 0.01):
 		self.beta: float = beta
 		self.n: int = n
 		self.k: int = k
@@ -16,7 +19,7 @@ class BrainPart:
 		self.winners: List[int] = []
 		self.new_winners: List[int] = []
 
-		if k < 0:
+		if k == 0:
 			self.k = math.sqrt(n)
 
 	# Beta may be static

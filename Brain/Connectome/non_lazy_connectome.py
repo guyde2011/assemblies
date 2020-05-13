@@ -22,14 +22,14 @@ class NonLazyConnectome(Connectome):
                  connections: Dict[(BrainPart, BrainPart), Connection] = None, initialize=True):
         """
         :param p: The attribute p for the probability of an edge to exits
-		:param brain_parts: Optional - Initialize list of brain parts which constructs the connectome.
+        :param brain_parts: Optional - Initialize list of brain parts which constructs the connectome.
         :param connections: Optional argument which gives active connections to the connectome
         :param initialize: Whether or not to initialize the connectome of the brain.
         """
-        super(NonLazyConnectome, self).__init__(brainparts, connections)
+        super(NonLazyConnectome, self).__init__(brain_parts, connections)
         self.p = p
         if initialize:
-            self._initialize_parts(brainparts)
+            self._initialize_parts(brain_parts)
 
     def add_brain_part(self, brainpart: BrainPart):
         self.brain_parts.append(brainpart)
@@ -74,7 +74,7 @@ class NonLazyConnectome(Connectome):
         """
         Initialize the connection from brain part to an area
         :param part: Stimulus or Area which the connection should come from
-        :param area: Area which the connection go to
+        :param other: Area which the connection go to
         :return:
         """
         if (part, other) in self.connections.keys():
@@ -101,8 +101,8 @@ class NonLazyConnectome(Connectome):
 
     def project_into(self, part: BrainPart, sources: List[BrainPart]) -> List[int]:
         """
-		Project multiple stimuli and area assemblies into area 'area' at the same time.
-        :param area: The area projected into
+        Project multiple stimuli and area assemblies into area 'area' at the same time.
+        :param part: The area projected into
         :param sources: List of separate brain parts whose assemblies we will projected into this area
         :return: Returns new winners of the area
         """
@@ -126,8 +126,8 @@ class NonLazyConnectome(Connectome):
         return heapq.nlargest(part.k, list(range(len(prev_winner_inputs))), prev_winner_inputs.__getitem__)
 
     def next_round(self, connections: Dict[BrainPart, List[BrainPart]]):
-        """ 
-		Project is the basic operation where some stimuli and some areas are activated,
+        """
+        Project is the basic operation where some stimuli and some areas are activated,
         with only specified connections between them active.
         :param connections: A dictionary of connections to use in the projection, for example {area1
         """
