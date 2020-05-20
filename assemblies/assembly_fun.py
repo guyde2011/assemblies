@@ -9,11 +9,12 @@ from copy import deepcopy
 Projectable = Union['Assembly', 'NamedStimulus']
 
 
-class NamedStimulus(object):    # hi
+class NamedStimulus(object):  # hi
     """ 
     acts as a buffer between our implementation and brain.py, as the relevant
     functions there use naming to differentiate between areas
     """
+
     def __init__(self, name, stimulus):
         self.name = name
         self.stimulus = stimulus
@@ -126,6 +127,13 @@ class Assembly(object):
                 continue
             del self.support[neuron]
 
+    """
+    TODO: add fire: 
+    args: {area -> [areas]}
+    for area inhibits targets and next_round
+    then update fire_many with this.
+    """
+
     @repeat
     def project(self, brain: Brain, area_name: str) -> 'Assembly':
         """
@@ -150,7 +158,7 @@ class Assembly(object):
         we create an "artificial" new assembly with x, y as parents, and then project_many
         to its area. this will create the effect of projecting stimultaneously, as described in the paper.
         """
-        assert(assembly1.area_name != assembly2.area_name, "Areas are the same")
+        assert (assembly1.area_name != assembly2.area_name, "Areas are the same")
         merged_assembly: Assembly = Assembly([assembly1, assembly2], area_name,
                                              f"merge({assembly1.name}, {assembly2.name}, {area_name})")
         # TODO: Decide one of the two - Consult Edo Arad
@@ -158,7 +166,6 @@ class Assembly(object):
         merged_assembly.update_support(brain.areas[area_name].winners)
         # OR: Assembly.fire_many(assembly1.brain, assembly1.parents + assembly2.parents)
         return merged_assembly
-
 
     @staticmethod
     @repeat
@@ -208,7 +215,6 @@ class Assembly(object):
         """
         return None
 
-
     """
     overriding arithmetic methods ( + , >> , <<) to make using common
     assembly operations easier.
@@ -218,32 +224,31 @@ class Assembly(object):
     small class to represent many assemblies, to be fired with >> into an area.
     USAGE EXAMPLE: (ass1+ass2+ass3+ass4)>>"area name"
     """
+
     class AssemblyTuple(object):
         def __init__(self, lst):
             self.dat = lst
 
-        def __add__(self,other):
-            assert isinstance(other, Projectable)
-            return AssemblyTuple(self.dat + other)
+        def __add__(self, other):
+            assert isinstance(other, Projectable.__args__)
+            return Assembly.AssemblyTuple(self.dat + [other])
 
         def __rshift__(self, other):
-            assert isinstance(other,str)
-            Assembly.fire_many(*dat,other)
-
+            assert isinstance(other, str)
+            Assembly.fire_many(self.dat[0].brain, self.dat, other)
 
     # ass1 < ass2 <=> ass1 is a child of ass2
     def __lt__(self, other):
         return other in self.parents
 
-    #symmetric
+    # symmetric
     def __gt__(self, other):
         return self in other.parents
 
-    #an assembly is defined by its area and parents.
+    # an assembly is defined by its area and parents.
     def __eq__(self, other):
-        if not isinstance(other,Assembly): return False
+        if not isinstance(other, Assembly): return False
         return set(self.parents) == set(other.parents) and self.area_name == other.area_name
 
-
-    def __add__(self,other):
-        return AssemblyTuple(self,other)
+    def __add__(self, other):
+        return Assembly.AssemblyTuple([self, other])
