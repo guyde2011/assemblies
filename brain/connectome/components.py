@@ -1,7 +1,7 @@
 import math
 from typing import List
 
-from Brain.brain import Brain
+from brain.brain import Brain
 
 
 class BrainPart:

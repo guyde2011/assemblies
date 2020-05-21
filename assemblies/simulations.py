@@ -1,10 +1,5 @@
 from brain import Brain
-import brain_util as bu
 import logging
-import numpy as np
-import random
-import copy
-import matplotlib.pyplot as plt
 from assemblies.assembly_fun import Assembly, NamedStimulus
 from typing import List
 
@@ -65,5 +60,6 @@ def assemblies_simulation(n=1000000, k=1000, p=0.1, beta=0.05, t=100) -> Brain:
         print("Read is unimplemented!")
 
     return brain
+
 
 assemblies_simulation()

@@ -2,7 +2,7 @@ from functools import wraps
 from inspect import Parameter
 
 from assemblies.argument_manipulation import argument_restrict, argument_extend
-from ..Brain.brain import *
+from ..brain.brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
@@ -126,7 +126,7 @@ class Assembly(object):
             if self.support[neuron] < oldest:
                 continue
             del self.support[neuron]
-
+    
 
 
     def fire(self, brain: Brain, mapping: Dict[Projectable, List[str]]):

@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from .Connectome import BrainPart, Connectome
+from .connectome import BrainPart, Connectome
 
 
 class Brain:
