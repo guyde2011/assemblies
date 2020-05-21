@@ -2,7 +2,7 @@ from functools import wraps
 from inspect import Parameter
 
 from assemblies.argument_manipulation import argument_restrict, argument_extend
-from brain import *
+from ..Brain.brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
@@ -127,12 +127,25 @@ class Assembly(object):
                 continue
             del self.support[neuron]
 
-    """
-    TODO: add fire: 
-    args: {area -> [areas]}
-    for area inhibits targets and next_round
-    then update fire_many with this.
-    """
+
+
+    def fire(self, brain: Brain, mapping: Dict[Projectable, List[str]]):
+        """
+        fire for new API
+        :param brain: the current brain; decided by the bindable decorator
+        :param mapping: mapping of projectables into ares
+        """
+        for p in mapping:
+            for t in mapping[p]:
+                brain.inhibit(p, t)
+        brain.next_round()
+        for p in mapping:
+            for t in mapping[p]:
+                brain.disinhibit(p, t)
+
+
+
+
 
     @repeat
     def project(self, brain: Brain, area_name: str) -> 'Assembly':
