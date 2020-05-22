@@ -15,7 +15,7 @@ class UniquelyIdentifiable:
 		return hash(self._uid)
 
 	def __eq__(self, other):
-		return self._uid == getattr(other, '_uid', None)
+		return type(self) == type(other) and self._uid == getattr(other, '_uid', None)
 
 
 @Bindable('brain')
