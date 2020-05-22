@@ -74,10 +74,10 @@ class Connection:
 			return self.dest.beta
 		return self.source.beta
 
-	def __getitem__(self, key: BrainPart):
+	def __getitem__(self, key: int):
 		return self.synapses[key]
 
-	def __setitem__(self, key: BrainPart, value: float):
+	def __setitem__(self, key: int, value: float):
 		self.synapses[key] = value
 
 	def __repr__(self):
