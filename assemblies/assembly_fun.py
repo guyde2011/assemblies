@@ -2,25 +2,12 @@ from functools import wraps
 from inspect import Parameter
 
 from assemblies.argument_manipulation import argument_restrict, argument_extend
+from brain.connectome.components import Stimulus
 from ..brain.brain import *
 from typing import Iterable, Union, Optional
 from copy import deepcopy
 
-Projectable = Union['Assembly', 'NamedStimulus']
-
-
-class NamedStimulus(object):  # hi
-    """ 
-    acts as a buffer between our implementation and brain.py, as the relevant
-    functions there use naming to differentiate between areas
-    """
-
-    def __init__(self, name, stimulus):
-        self.name = name
-        self.stimulus = stimulus
-
-    def __repr__(self) -> str:
-        return f"Stimulus({self.name})"
+Projectable = Union['Assembly', Stimulus]
 
 
 def repeat(func):
@@ -45,17 +32,18 @@ def repeat(func):
                            restrict=False)(wrapper)
 
 
-class Assembly(object):
+class Assembly(BrainPart):
     """
     the main assembly object. according to our implementation, the main data of an assembly
     is his parents. we also keep a name for simulation puposes.
     """
 
-    def __init__(self, parents: Iterable[Projectable], area_name: str, name: str, support_size: int, t: int = 1):
+    def __init__(self, parents: Iterable[Projectable], area: Area, support_size: int, t: int = 1):
+        # Removed name from parameters
         self.parents: List[Projectable] = list(parents)
-        self.area_name: str = area_name
-        self.name: str = name
+        self.area: Area = area
         self.support_size: int = support_size
+        # TODO: Tomer, update to depend on brain as well?
         self.support: Dict[int, int] = {}
 
         """
@@ -63,12 +51,6 @@ class Assembly(object):
         this assembly object.
         """
         self.t = t
-
-    def __repr__(self) -> str:
-        return self.name
-
-    def __hash__(self) -> int:
-        return hash(self.name)
 
     @staticmethod
     def fire_many(brain: Brain, projectables: Iterable[Projectable], area_name: str):
@@ -108,12 +90,15 @@ class Assembly(object):
             for ass, areas in filter(lambda pair: isinstance(pair[0], Assembly), layer.items()):
                 area_mappings[ass.area_name] = area_mappings.get(ass.area_name, []) + areas
 
-            brain.project(stimuli_mappings, area_mappings)
+            self.fire(stimuli_mappings, area_mappings)
             for ass in layer:
                 if isinstance(ass, Assembly):
                     ass.update_support(brain.areas[ass.area_name].winners)
 
-    def update_support(self, winners):
+    def update_support(self, brain, winners):
+        # TODO: Tomer, need to index by brain
+        # Something along the lines of self.supports[brain] = ...
+
         oldest = 1
         for neuron in self.support:
             self.support[neuron] += 1
@@ -126,54 +111,51 @@ class Assembly(object):
             if self.support[neuron] < oldest:
                 continue
             del self.support[neuron]
-    
 
-
-    def fire(self, brain: Brain, mapping: Dict[Projectable, List[str]]):
+    @staticmethod
+    def fire(brain: Brain, mapping: Dict[Projectable, List[BrainPart]]):
         """
         fire for new API
         :param brain: the current brain; decided by the bindable decorator
         :param mapping: mapping of projectables into ares
         """
+        # TODO: Ido & Eyal, this is supposed to be mapping into BrainPart not str, update if needed (?)
+        # I updated the signature
         for p in mapping:
             for t in mapping[p]:
+                # TODO: Ido & Eyal, handle the case the projectable is an assembly (?)
                 brain.inhibit(p, t)
         brain.next_round()
         for p in mapping:
             for t in mapping[p]:
                 brain.disinhibit(p, t)
 
-
-
-
-
     @repeat
-    def project(self, brain: Brain, area_name: str) -> 'Assembly':
+    def project(self, brain: Brain, area: Area) -> 'Assembly':
         """
         a simple case of project many, with only one projectable parameter
         """
-        projected_assembly: Assembly = Assembly([self], area_name, f"project({self.name}, {area_name})")
-        Assembly.fire_many(brain, [self], area_name)
-        projected_assembly.update_support(brain.areas[area_name].winners)
+        projected_assembly: Assembly = Assembly([self], area)
+        Assembly.fire_many(brain, [self], area)
+        projected_assembly.update_support(brain, brain.get_winners(area))
         return projected_assembly
 
     @repeat
     def reciprocal_project(self, brain: Brain, area_name: str) -> 'Assembly':
         projected_assembly: Assembly = self.project(brain, area_name)
         Assembly.fire_many(brain, [projected_assembly], self.area_name)
-        self.update_support(brain.areas[self.area_name].winners)
+        self.update_support(brain, brain.get_winners(self.area))
         return projected_assembly
 
     @staticmethod
     @repeat
-    def merge(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly', area_name: str) -> 'Assembly':
+    def merge(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly', area: Area) -> 'Assembly':
         """
         we create an "artificial" new assembly with x, y as parents, and then project_many
         to its area. this will create the effect of projecting stimultaneously, as described in the paper.
         """
         assert (assembly1.area_name != assembly2.area_name, "Areas are the same")
-        merged_assembly: Assembly = Assembly([assembly1, assembly2], area_name,
-                                             f"merge({assembly1.name}, {assembly2.name}, {area_name})")
+        merged_assembly: Assembly = Assembly([assembly1, assembly2], area)
         # TODO: Decide one of the two - Consult Edo Arad
         Assembly.fire_many(brain, [assembly1, assembly2], area_name)
         merged_assembly.update_support(brain.areas[area_name].winners)

@@ -1,9 +1,10 @@
 from typing import Dict, List
 
 from .connectome import BrainPart, Connectome
+from .connectome.components import Area, UniquelyIdentifiable
 
 
-class Brain:
+class Brain(UniquelyIdentifiable):
 	T = 10
 	"""
 	Represents a simulated brain, with it's connectome which holds the areas, stimuli, and all the synapse weights.
@@ -20,6 +21,7 @@ class Brain:
 	"""
 
 	def __init__(self, connectome, active_connectome=None):
+		super(Brain, self).__init__()
 		self.connectome: Connectome = connectome
 		self.active_connectome: Dict[BrainPart, set[BrainPart]] = {}
 		if active_connectome is not None:
@@ -59,3 +61,9 @@ class Brain:
 			return
 		for sink in self.connectome.brain_parts:
 			self.disinhibit(source, sink)
+
+	def get_winners(self, area: Area):
+		pass
+
+	def get_support(self, area: Area):
+		pass

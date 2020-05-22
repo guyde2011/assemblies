@@ -1,72 +1,84 @@
 import math
-from typing import List
+from typing import List, Optional, Union
+import uuid
+from uuid import UUID
 
+from assemblies.bindable import Bindable, bindable_property
 from brain.brain import Brain
 
 
-class BrainPart:
-	def __init__(self, part_type: str, brain: Brain, *args, **kwargs):
-		init = {'Area': self._init_area, 'Stimulus': self._init_stimulus, 'OutputArea': self._init_area}
-		self.part_type = part_type
-		init[self.part_type](*args, **kwargs)
-		self.brain = brain
+class UniquelyIdentifiable:
+	def __init__(self):
+		self._uid: UUID = uuid.uuid4()
 
-	def _init_area(self, n: int, k: int = 0, beta: float = 0.01):
+	def __hash__(self):
+		return hash(self._uid)
+
+	def __eq__(self, other):
+		return self._uid == getattr(other, '_uid', None)
+
+
+@Bindable('brain')
+class Area(UniquelyIdentifiable):
+	def __init__(self, n: int, k: Optional[int] = None, beta: float = 0.01):
+		super(Area, self).__init__()
 		self.beta: float = beta
 		self.n: int = n
-		self.k: int = k
-		self.support: List[int] = [0] * self.n
-		self.winners: List[int] = []
-		self.new_winners: List[int] = []
+		self.k: int = k if k is not None else int(n ** 0.5)
 
 		if k == 0:
 			self.k = math.sqrt(n)
 
-	# Beta may be static
-	def _init_stimulus(self, n: int, beta: float):
+	@bindable_property
+	def winners(self, brain: Brain):
+		return brain.get_winners(self)
+
+	@bindable_property
+	def support(self, brain: Brain):
+		return brain.get_support(self)
+
+	def __repr__(self):
+		return f"Area(n={self.n}, k={self.k}, beta={self.beta})"
+
+
+class Stimulus(UniquelyIdentifiable):
+	def __init__(self, n: int, beta: float):
+		super(Stimulus, self).__init__()
 		self.n = n
 		self.beta = beta
 
-	@classmethod
-	def create_area(cls, n: int, k: int, beta: float = 0.01):
-		cls('Area', n, k, beta)
+	def __repr__(self):
+		return f"Stimulus(n={self.n}, beta={self.beta})"
 
-	@classmethod
-	def create_stimulus(cls, n: int, beta: float):
-		cls('Stimulus', n, beta)
 
-	@classmethod
-	def create_outputarea(cls, n: int, beta: float):
-		cls('OutputArea', n, beta)
+class OutputArea(Area):
+	def __init__(self, n: int, beta: float):
+		super(OutputArea, self).__init__(n=n, beta=beta)
 
 	def __repr__(self):
-		attrs = []
-		for attr in ['n', 'k', 'beta']:
-			if hasattr(self, attr):
-				attrs.append(attr)
-		return f"{self.part_type}(" + ','.join([str(self.attr) for attr in attrs]) + ")"
+		return f"OutputArea(n={self.n}, beta={self.beta})"
+
+
+BrainPart = Union[Area, Stimulus, OutputArea]
 
 
 class Connection:
 	def __init__(self, source: BrainPart, dest: BrainPart, synapses=None):
-		self.source = source
-		self.dest = dest
-		self.synapses = synapses
+		self.source: BrainPart = source
+		self.dest: BrainPart = dest
+		self.synapses = synapses if synapses is not None else {}
 
 	@property
 	def beta(self):
-		if self.source.part_type == 'Stimulus':
+		if isinstance(self.source, Stimulus):
 			return self.dest.beta
 		return self.source.beta
 
-	def __getitem__(self, key):
+	def __getitem__(self, key: BrainPart):
 		return self.synapses[key]
 
-	def __setitem__(self, key, value):
+	def __setitem__(self, key: BrainPart, value: float):
 		self.synapses[key] = value
 
 	def __repr__(self):
-		return f"Connection({self.synapses!r})"
-
-
-__all__ = ['BrainPart', 'Connection']
+		return f"Connection(synapses={self.synapses!r})"
