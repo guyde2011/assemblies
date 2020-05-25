@@ -1,9 +1,9 @@
 import math
-from typing import List, Optional, Union
+from typing import Optional, Union
 import uuid
 from uuid import UUID
 
-from assemblies.bindable import Bindable, bindable_property
+from utils.bindable import Bindable, bindable_property
 from brain.brain import Brain
 
 

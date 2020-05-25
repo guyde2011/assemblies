@@ -1,5 +1,5 @@
 from typing import List, Optional, cast
-from inspect import signature, Parameter, Signature
+from inspect import signature, Parameter, Signature, ismethod
 from functools import partial
 
 
@@ -79,7 +79,7 @@ class Bindable:
         setattr(cls, '_bound_params', {})
         for name, func in vars(cls).items():
             # Decorate all non-protected functions
-            if callable(func) and not name.startswith('_'):
+            if callable(func) and not name.startswith('_') and not isinstance(func, staticmethod):
                 setattr(cls, name, Bindable.wrap_function(func, params))
 
         if len(params) == 1:
