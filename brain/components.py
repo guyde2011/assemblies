@@ -33,11 +33,11 @@ class Area(UniquelyIdentifiable):
 
 	@bindable_property
 	def winners(self, *, brain: Brain):
-		return brain.get_winners(self)
+		return brain.winners[self]
 
 	@bindable_property
 	def support(self, *, brain: Brain):
-		return brain.get_support(self)
+		return brain.support[self]
 
 	def __repr__(self):
 		return f"Area(n={self.n}, k={self.k}, beta={self.beta})"

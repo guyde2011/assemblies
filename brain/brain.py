@@ -1,9 +1,14 @@
-from typing import Dict, Set
+from __future__ import annotations
 
-from .brain_recipe import BrainRecipe
-from .components import BrainPart
+from collections import defaultdict
+from functools import cached_property
+from typing import Dict, Set, TYPE_CHECKING
+
+from .components import BrainPart, Stimulus
 from .connectome import Connectome
 from brain.components import Area, UniquelyIdentifiable
+if TYPE_CHECKING:
+	from .brain_recipe import BrainRecipe
 
 
 class Brain(UniquelyIdentifiable):
@@ -24,19 +29,20 @@ class Brain(UniquelyIdentifiable):
 
 	def __init__(self, connectome: Connectome, recipe: BrainRecipe = None):
 		super(Brain, self).__init__()
+		self.recipe = recipe or BrainRecipe()
 		self.connectome: Connectome = connectome
-		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = {}
-		self.recipe = recipe or None
+		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = defaultdict(lambda: set())
 
 	def next_round(self):
-		return self.connectome.next_round(self.active_connectome)
+		return self.connectome.project(self.active_connectome)
 
-	def add_brain_part(self, brain_part: BrainPart):
-		self.recipe.append(brain_part)
-		return self.connectome.add_brain_part(brain_part)
+	def add_area(self, area: Area):
+		self.recipe.append(area)
+		return self.connectome.add_area(area)
 
-	next_round.__doc__ = Connectome.next_round.__doc__
-	add_brain_part.__doc__ = Connectome.add_brain_part.__doc__
+	def add_stimulus(self, stimulus: Stimulus):
+		self.recipe.append(stimulus)
+		return self.connectome.add_stimulus(stimulus)
 
 	def inhibit(self, source: BrainPart, dest: BrainPart = None):
 		"""
@@ -46,9 +52,9 @@ class Brain(UniquelyIdentifiable):
 		:param dest: The destination brain part of the connection.
 		"""
 		if dest is not None:
-			self.active_connectome[source].discard(dest)
+			self.active_connectome[source].add(dest)
 			return
-		for sink in self.connectome.brain_parts:
+		for sink in self.connectome.areas + self.connectome.stimuli:
 			self.inhibit(source, sink)
 
 	def disinhibit(self, source: BrainPart, dest: BrainPart = None):
@@ -59,16 +65,19 @@ class Brain(UniquelyIdentifiable):
 		:param dest: The destination brain part of the connection.
 		"""
 		if dest is not None:
-			self.active_connectome[source].add(dest)
+			self.active_connectome[source].discard(dest)
 			return
-		for sink in self.connectome.brain_parts:
+		for sink in self.connectome.areas:
 			self.disinhibit(source, sink)
 
-	def get_winners(self, area: Area):
-		pass
+	@cached_property
+	def winners(self):
+		return self.connectome.winners
 
-	def get_support(self, area: Area):
-		pass
+	@cached_property
+	def support(self):
+		# TODO: Implement
+		return None
 
 	def __enter__(self):
 		for area in self.recipe.areas:
@@ -77,13 +86,15 @@ class Brain(UniquelyIdentifiable):
 		for assembly in self.recipe.assemblies:
 			assembly.bind(brain=self)
 
+		return self
+
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		for area in self.recipe.areas:
-			area.bind('brain')
+			area.unbind('brain')
 
 		for assembly in self.recipe.assemblies:
-			assembly.bind('brain')
+			assembly.unbind('brain')
 
 
-def bake(recipe: BrainRecipe, connectome_cls):
-	return Brain(connectome_cls(), recipe=recipe)
+def bake(recipe: BrainRecipe, p: int, connectome_cls):
+	return Brain(connectome_cls(p, areas=recipe.areas, stimuli=recipe.stimuli), recipe=recipe)

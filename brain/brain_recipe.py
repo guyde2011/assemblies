@@ -1,16 +1,15 @@
-from __future__ import annotations
-from typing import List, Union, TYPE_CHECKING
+from typing import List, Union
 
-if TYPE_CHECKING:
-    from assemblies.assembly_fun import Assembly
-    from brain.components import Area, Stimulus, BrainPart
+from assemblies.assembly_fun import Assembly
+from brain.components import Area, Stimulus, BrainPart
 
 
 class BrainRecipe:
-    def __init__(self):
+    def __init__(self, *parts: Union[BrainPart, Assembly]):
         self.areas: List[Area] = []
         self.stimuli: List[Stimulus] = []
         self.assemblies: List[Assembly] = []
+        self.extend(*parts)
 
     def _add_area(self, area: Area):
         if area not in self.areas:

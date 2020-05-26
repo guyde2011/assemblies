@@ -1,11 +1,13 @@
-from itertools import product, chain
-from numpy.core._multiarray_umath import ndarray
-from typing import Dict, List, Tuple
 import logging
 import heapq
+
 import numpy as np
+
 from collections import defaultdict
 from wrapt import ObjectProxy
+from itertools import product, chain
+from numpy.core._multiarray_umath import ndarray
+from typing import Dict, List, Tuple, Mapping, Iterable, Set
 
 from ..components import Area, BrainPart, Stimulus, Connection
 from .connectome import Connectome
@@ -15,7 +17,6 @@ class NonLazyConnectome(Connectome):
     """
     Implementation of Non lazy random based connectome, based on the generic connectome.
     The object representing the connection in here is ndarray from numpy
-
     Attributes:
         (All the attributes of Connectome
         p: The probability for each edge of the connectome to exist
@@ -91,7 +92,9 @@ class NonLazyConnectome(Connectome):
                 beta = source.beta if isinstance(source, Area) else area.beta
                 for i in new_winners[area]:
                     # update weight (*(1+beta)) for all neurons in stimulus / the winners in area
-                    source_neurons: List[int] = range(source.n) if isinstance(source, Stimulus) else source.winners
+                    source_neurons: Iterable[int] = range(source.n) if isinstance(source, Stimulus) \
+                        else self.winners[source]
+
                     for j in source_neurons:
                         self.connections[source, area][j][i] *= (1 + beta)
                 print(f'connection {source}-{area} now looks like: {self.connections[source, area]}')
@@ -110,7 +113,7 @@ class NonLazyConnectome(Connectome):
         prev_winner_inputs: List[float] = np.zeros(area.n)
         for source in src_areas:
             area_connectomes = self.connections[source, area]
-            for winner in source.winners:
+            for winner in self.winners[source]:
                 prev_winner_inputs += area_connectomes[winner]
 
         if src_stimuli:
@@ -127,12 +130,12 @@ class NonLazyConnectome(Connectome):
         print(f'prev_winner_inputs: {prev_winner_inputs}')
         return heapq.nlargest(area.k, list(range(len(prev_winner_inputs))), prev_winner_inputs.__getitem__)
 
-    def project(self, connections: Dict[BrainPart, List[Area]]):
+    def project(self, connections: Dict[BrainPart, Iterable[Area]]):
         """ Project is the basic operation where some stimuli and some areas are activated,
         with only specified connections between them active.
         :param connections A dictionary of connections to use in the projection, for example {area1
         """
-        sources_mapping: defaultdict[Area, List[BrainPart]] = defaultdict(lambda: [])
+        sources_mapping: Dict[Area, List[BrainPart]] = defaultdict(lambda: [])
 
         for part, areas in connections.items():
             for area in areas:
@@ -150,4 +153,4 @@ class NonLazyConnectome(Connectome):
 
         # once done everything, update areas winners
         for area in to_update:
-            area.winners = new_winners[area]
+            self._winners[area] = new_winners[area]

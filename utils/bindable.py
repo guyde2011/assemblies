@@ -100,7 +100,8 @@ class Bindable(Generic[T]):
                 names = tuple(self._bound_params.keys())
 
             for name in names:
-                self._bound_params.pop(name)
+                if name in self._bound_params:
+                    self._bound_params.pop(name)
 
         bind.__doc__ = bind.__doc__.format(params)
         unbind.__doc__ = unbind.__doc__.format(params)

@@ -1,10 +1,12 @@
+from __future__ import annotations
 from brain import Brain
-from brain.brain_recipe import BrainRecipe
 from utils.implicit_resolution import ImplicitResolution
 from utils.bindable import Bindable
 from utils.repeat import Repeat
 from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
-from typing import Iterable, Union, Tuple, List, Dict
+from typing import Iterable, Union, Tuple, List, Dict, TYPE_CHECKING
+if TYPE_CHECKING:
+    from brain.brain_recipe import BrainRecipe
 
 Projectable = Union['Assembly', Stimulus]
 
@@ -12,6 +14,10 @@ bound_assembly_tuple = ImplicitResolution(lambda instance, name:
                                           Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'brain')
 repeat = Repeat(resolve=lambda self, *args, **kwargs: self.t)
 multiple_assembly_repeat = Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
+
+# TODO: Fix repeat (Yonatan)
+repeat = lambda x: x
+multiple_assembly_repeat = lambda x: x
 
 
 @Bindable('brain')
@@ -63,7 +69,7 @@ class Assembly(UniquelyIdentifiable):
             del self.support[neuron]
 
     @staticmethod
-    def fire(brain: Brain, mapping: Dict[Projectable, List[BrainPart]]):
+    def fire(brain: Brain, mapping: Dict[BrainPart, List[BrainPart]]):
         """
         Fire an assembly
         TODO: Tomer, this is an helper function for you right? If so, move to where relevant
@@ -93,8 +99,9 @@ class Assembly(UniquelyIdentifiable):
         assert isinstance(area, Area), "Project target must be an Area"
         projected_assembly: Assembly = Assembly([self], area, self.support_size, t=self.t, appears_in=self.appears_in)
         if brain is not None:
-            Assembly.fire_many(brain, [self], area)
-            projected_assembly.update_support(brain, brain.get_winners(area))
+            Assembly.fire(brain, {self.area: [area]})
+            # TODO: Tomer, update
+            #projected_assembly.update_support(brain, brain.winners[area])
 
         projected_assembly.bind_like(self)
         return projected_assembly
@@ -115,7 +122,7 @@ class Assembly(UniquelyIdentifiable):
         """
         projected_assembly: Assembly = self.project(brain, area)
         Assembly.fire_many(brain, [projected_assembly], self.area)
-        self.update_support(brain, brain.get_winners(self.area))
+        self.update_support(brain, brain.winners[self.area])
         return projected_assembly
 
     @staticmethod
@@ -137,7 +144,7 @@ class Assembly(UniquelyIdentifiable):
                                              appears_in=set(assembly1.appears_in).intersection(assembly2.appears_in))
         if brain is not None:
             Assembly.fire_many(brain, [assembly1, assembly2], area)
-            merged_assembly.update_support(brain, brain.get_winners(area))
+            merged_assembly.update_support(brain, brain.winners[area])
 
         merged_assembly.bind_like(assembly1, assembly2)
         return merged_assembly
