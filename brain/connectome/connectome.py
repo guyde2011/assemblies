@@ -1,50 +1,73 @@
+from __future__ import annotations  # import annotations from later version of python.
+# We need it here to annadiane that connectome has a method which returns itself
+
+from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Tuple
 
-from brain.components import BrainPart, Connection
+from wrapt import ObjectProxy  # Needed to pip install
+
+from ..components import BrainPart, Area, Stimulus, Connection
+
+
+# The wrapt library implements easy to use wrapper objects, which delegates everything to the object you are
+# using. It's very convenient to use (it can be used exactly in the same way).
+# More info and examples:
+# https://wrapt.readthedocs.io/en/latest/wrappers.html
 
 
 class Connectome:
-	"""
-	Represent the graph of connections between areas and stimuli of the brain.
-	This is a generic abstract class which offer a good infrastructure for building new models of connectome.
-	You should implement some of the parts which are left for private case. For example when and how the connectome
-	should be initialized, how the connections are represented.
+    """
+    Represent the graph of connections between areas and stimuli of the brain.
+    This is a generic abstract class which offer a good infrastructure for building new models of connectome.
+    You should implement some of the parts which are left for private case. For example when and how the connectome
+    should be initialized, how the connections are represented.
 
-	Attributes:
-		brain_parts - List of all brain parts of the connectome.
-		connections - Should maintain the graph of connection between all brain parts in the connectome.
-	"""
+    Attributes:
+        areas: List of area objects in the connectome
+        stimuli: List of stimulus objects in the connectome
+        connections: Dictionary from tuples of BrainPart(Stimulus/Area) and Area to some object which
+        represent the connection (e.g. numpy matrix). Each connection is held ObjectProxy which will
+        make the connection.
+        to be saved by reference. (This makes the get_subconnectome routine much easier to implement)
 
-	def __init__(self, brain_parts=None, connections=None, brain=None):
-		self.brain_parts: List[BrainPart] = []
-		self.connections: Dict[Tuple[BrainPart, BrainPart], Connection] = {}
-		self.brain = brain
+    """
+    __metaclass__ = ABCMeta  # This is some magic code which makes the connectome become an abstract class
 
-		if brain_parts is not None:
-			self.brain_parts = brain_parts
+    def __init__(self, p, areas=None, stimuli=None):
+        self.areas: List[Area] = []
+        self.stimuli: List[Stimulus] = []
+        self.connections: Dict[Tuple[BrainPart, Area], Connection] = {}
+        self.p = p
 
-		if connections is not None:
-			self.connections = connections
+        if areas:
+            self.areas = areas
+        if stimuli:
+            self.stimuli = stimuli
 
-		if any([brain_part.brain != brain for brain_part in brain_parts]):
-			raise Exception("all brain parts must belong to the given brain!")
+    def add_area(self, area: Area):
+        self.areas.append(area)
 
-	def add_brain_part(self, brain_part: BrainPart):
-		"""
-		Add a new brain part to the connectome.
-		:param brain_part: New BrainPart object.
-		"""
-		if brain_part.brain != self.brain:
-			raise Exception("all brain parts must belong to the given brain!")
-		self.brain_parts.append(brain_part)
+    def add_stimulus(self, stimulus: Stimulus):
+        self.stimuli.append(stimulus)
 
-	def next_round(self, active_connections: Dict[BrainPart, List[BrainPart]]):
-		"""
-		Runs one iteration of the connectome, update plasticity and winners in the connectome.
-		This will be valid only to a subset of the available connections of the brain.
-		:param active_connections: Mapping which maps each source brain part to a destination brain part.
-		"""
-		raise NotImplementedError
+    @abstractmethod
+    def subconnectome(self, connections: Dict[BrainPart, Area]) -> Connectome:
+        """
+        Retrieve restriction of the connectome to specific subconnectome.
+        Note that changes to the returned subconnectome should reflect in the original one. (By reference)
+        :param connections: directed connections needed in the subconnectome
+        :return: A connectome which is a subgraph of the self connectome, according to the mapping in connections
+        """
+        pass
 
-	def __repr__(self):
-		return f'{self.__class__.__name__} with {len(self.brain_parts)} brain parts'
+    @abstractmethod
+    def area_connections(self, area: Area) -> List[BrainPart]:
+        """
+        Retrieve all parts with connection to specific areas, according to the current connectome
+        :param area: area which we need the connections to
+        :return: List of all connections to the area
+        """
+        pass
+
+    def __repr__(self):
+        return f'{self.__class__.__name__} with {len(self.areas)} areas, and {len(self.stimuli)} stimuli'
