@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 
 from .connectome import BrainPart, Connectome
 from .connectome.components import Area, UniquelyIdentifiable

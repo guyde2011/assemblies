@@ -19,8 +19,8 @@ class ImplicitResolution:
         self.resolve: Callable[[Any, str], Tuple[bool, Optional[Any]]] = resolve
 
     @staticmethod
-    def wrap_function(function, resolve: Callable[[Any, str],
-                                                  Tuple[bool, Optional[Any]]], param_names: Tuple[str, ...]):
+    def wrap_function(function, resolve: Callable[[Any, str], Tuple[bool, Optional[Any]]],
+                      param_names: Tuple[str, ...]):
         """
         Wraps a function to comply with the implicit resolution decoration, auto-fills resolved parameters
         :param function: Function to wrap

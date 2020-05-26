@@ -4,7 +4,6 @@ import uuid
 from uuid import UUID
 
 from utils.bindable import Bindable, bindable_property
-from brain.brain import Brain
 
 
 class UniquelyIdentifiable:
@@ -30,11 +29,11 @@ class Area(UniquelyIdentifiable):
 			self.k = math.sqrt(n)
 
 	@bindable_property
-	def winners(self, brain: Brain):
+	def winners(self, *, brain: 'Brain'):
 		return brain.get_winners(self)
 
 	@bindable_property
-	def support(self, brain: Brain):
+	def support(self, *, brain: 'Brain'):
 		return brain.get_support(self)
 
 	def __repr__(self):

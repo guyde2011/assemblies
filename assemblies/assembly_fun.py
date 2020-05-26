@@ -1,15 +1,15 @@
+from brain import Brain
 from utils.implicit_resolution import ImplicitResolution
-from ..utils.bindable import Bindable, protected_bindable
-from ..utils.repeat import Repeat
-from ..brain.connectome.components import Stimulus
-from ..brain.brain import *
-from typing import Iterable, Union, Tuple
+from utils.bindable import Bindable, protected_bindable
+from utils.repeat import Repeat
+from brain.connectome.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
+from typing import Iterable, Union, Tuple, List, Dict
 
 Projectable = Union['Assembly', Stimulus]
 
 
 @Bindable('brain')
-class Assembly(BrainPart):
+class Assembly(UniquelyIdentifiable):
     """
     the main assembly object. according to our implementation, the main data of an assembly
     is his parents. we also keep a name for simulation puposes.
@@ -24,6 +24,7 @@ class Assembly(BrainPart):
         :param support_size: TODO: Tomer, fill in?
         :param t: Number of times to repeat each operation
         """
+        super(Assembly, self).__init__()
         # Removed name from parameters
         self.parents: List[Projectable] = list(parents)
         self.area: Area = area
@@ -116,7 +117,7 @@ class Assembly(BrainPart):
         :param area:
         :return: Resulting merged assembly
         """
-        assert (assembly1.area_name != assembly2.area_name, "Areas are the same")
+        assert assembly1.area_name != assembly2.area_name, "Areas are the same"
         # Which support size ot select? Maybe support size should be a global variable?
         # Lets think about this
         merged_assembly: Assembly = Assembly([assembly1, assembly2], area, assembly1.support_size, assembly1.t)
@@ -134,7 +135,7 @@ class Assembly(BrainPart):
         :param assembly2:
         :return:
         """
-        assert (assembly1.area_name == assembly2.area_name, "Areas are not the same")
+        assert assembly1.area_name == assembly2.area_name, "Areas are not the same"
         Assembly.merge(brain, assembly1, assembly2, assembly1.area)
 
     class AssemblyTuple(object):

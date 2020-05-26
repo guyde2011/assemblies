@@ -68,40 +68,27 @@ class Bindable:
 
         setattr(cls, '__init__', new_init)
 
-        if len(params) == 1:
-            # Only one possible bound parameter
-            param: str = params[0]
+        # Many possible bound parameters
+        def bind(self, **kwargs):
+            """Binds (the) parameters {0} to the instance"""
+            problem: str = next((kwarg for kwarg in kwargs if kwarg not in params), None)
+            if problem:
+                raise Exception(f"Cannot bind parameter [{problem}], was not declared bindable")
 
-            def bind(self, obj):
-                """Binds {0} to this instance"""
-                self._bound_params[param] = obj
+            for k, v in kwargs.items():
+                self._bound_params[k] = v
 
-            def unbind(self):
-                """Unbinds {0} from the instance"""
-                self._bound_params.pop(param)
+        def unbind(self, *names):
+            """Unbinds (the) parameters {0} from the instance"""
+            problem: str = next((name for name in names if name not in params), None)
+            if problem:
+                raise Exception(f"Cannot unbind parameter [{problem}], was not declared bindable")
 
-            # Update docstrings to match bound parameter name
-            bind.__doc__ = cast(bind.__doc__, str).format(param)
-            unbind.__doc__ = cast(unbind.__doc__, str).format(param)
-        else:
-            # Many possible bound parameters
-            def bind(self, **kwargs):  # type: ignore
-                """Binds parameters to the instance"""
-                problem: str = next((kwarg for kwarg in kwargs if kwarg not in params), None)
-                if problem:
-                    raise Exception(f"Cannot bind parameter [{problem}], was not declared bindable")
+            for name in names:
+                self._bound_params.pop(name)
 
-                for k, v in kwargs.items():
-                    self._bound_params[k] = v
-
-            def unbind(self, *names):  # type: ignore
-                """Unbinds parameters from the instance"""
-                problem: str = next((name for name in names if name not in params), None)
-                if problem:
-                    raise Exception(f"Cannot unbind parameter [{problem}], was not declared bindable")
-
-                for name in names:
-                    self._bound_params.pop(name)
+        bind.__doc__ = bind.__doc__.format(params)
+        unbind.__doc__ = unbind.__doc__.format(params)
 
         # Update binding signature to match possible bound parameters
         bind.__signature__ = signature(bind).replace(parameters=

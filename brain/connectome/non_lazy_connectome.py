@@ -1,6 +1,6 @@
 from collections import defaultdict
 import heapq
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -19,7 +19,7 @@ class NonLazyConnectome(Connectome):
     """
 
     def __init__(self, p: float, brain_parts: List[BrainPart] = None,
-                 connections: Dict[(BrainPart, BrainPart), Connection] = None, initialize=True):
+                 connections: Dict[Tuple[BrainPart, BrainPart], Connection] = None, initialize=True):
         """
         :param p: The attribute p for the probability of an edge to exits
         :param brain_parts: Optional - Initialize list of brain parts which constructs the connectome.
