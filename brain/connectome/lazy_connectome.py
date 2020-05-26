@@ -1,6 +1,3 @@
-from typing import Dict, List
-
-from .components import BrainPart
 from .connectome import Connectome
 
 

@@ -1,8 +1,9 @@
 from brain import Brain
+from brain.brain_recipe import BrainRecipe
 from utils.implicit_resolution import ImplicitResolution
 from utils.bindable import Bindable
 from utils.repeat import Repeat
-from brain.connectome.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
+from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
 from typing import Iterable, Union, Tuple, List, Dict
 
 Projectable = Union['Assembly', Stimulus]
@@ -21,7 +22,8 @@ class Assembly(UniquelyIdentifiable):
     TODO: Rewrite
     """
 
-    def __init__(self, parents: Iterable[Projectable], area: Area, support_size: int, t: int = 1):
+    def __init__(self, parents: Iterable[Projectable], area: Area, support_size: int, t: int = 1,
+                 appears_in: Iterable[BrainRecipe] = None):
         """
         Initialize an assembly
         :param parents: Parents of the assembly (projectables that create it)
@@ -38,6 +40,9 @@ class Assembly(UniquelyIdentifiable):
         # Probably Dict[Brain, Dict[int, int]]
         self.support: Dict[int, int] = {}
         self.t: int = t
+        self.appears_in: List[BrainRecipe] = list(appears_in or [])
+        for recipe in self.appears_in:
+            recipe.append(self)
 
     def _update_support(self, brain: Brain, winners: List[int]):
         # TODO: Tomer, need to index by brain
@@ -78,7 +83,7 @@ class Assembly(UniquelyIdentifiable):
                 brain.disinhibit(p, t)
 
     @repeat
-    def project(self, area: Area, *, brain: Brain) -> 'Assembly':
+    def project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
         """
         Projects an assembly into an area
         :param brain:
@@ -86,9 +91,12 @@ class Assembly(UniquelyIdentifiable):
         :return: Resulting projected assembly
         """
         assert isinstance(area, Area), "Project target must be an Area"
-        projected_assembly: Assembly = Assembly([self], area, self.support_size, self.t)
-        Assembly.fire_many(brain, [self], area)
-        projected_assembly.update_support(brain, brain.get_winners(area))
+        projected_assembly: Assembly = Assembly([self], area, self.support_size, t=self.t, appears_in=self.appears_in)
+        if brain is not None:
+            Assembly.fire_many(brain, [self], area)
+            projected_assembly.update_support(brain, brain.get_winners(area))
+
+        projected_assembly.bind_like(self)
         return projected_assembly
 
     def __rshift__(self, other: Area) -> 'Assembly':
@@ -112,7 +120,7 @@ class Assembly(UniquelyIdentifiable):
 
     @staticmethod
     @multiple_assembly_repeat
-    def _merge(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly', area: Area) -> 'Assembly':
+    def _merge(assembly1: 'Assembly', assembly2: 'Assembly', area: Area, *, brain: Brain = None) -> 'Assembly':
         """
         Creates a new assembly with both assemblies as parents,
         practically creates a new assembly with one-directional links from parents
@@ -125,9 +133,13 @@ class Assembly(UniquelyIdentifiable):
         assert assembly1.area_name != assembly2.area_name, "Areas are the same"
         # Which support size ot select? Maybe support size should be a global variable?
         # Lets think about this
-        merged_assembly: Assembly = Assembly([assembly1, assembly2], area, assembly1.support_size, assembly1.t)
-        Assembly.fire_many(brain, [assembly1, assembly2], area)
-        merged_assembly.update_support(brain, brain.get_winners(area))
+        merged_assembly: Assembly = Assembly([assembly1, assembly2], area, assembly1.support_size, t=assembly1.t,
+                                             appears_in=set(assembly1.appears_in).intersection(assembly2.appears_in))
+        if brain is not None:
+            Assembly.fire_many(brain, [assembly1, assembly2], area)
+            merged_assembly.update_support(brain, brain.get_winners(area))
+
+        merged_assembly.bind_like(assembly1, assembly2)
         return merged_assembly
 
     @staticmethod

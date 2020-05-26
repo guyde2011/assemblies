@@ -1,7 +1,9 @@
-from typing import Dict
+from typing import Dict, Set
 
-from .connectome import BrainPart, Connectome
-from .connectome.components import Area, UniquelyIdentifiable
+from .brain_recipe import BrainRecipe
+from .components import BrainPart
+from .connectome import Connectome
+from brain.components import Area, UniquelyIdentifiable
 
 
 class Brain(UniquelyIdentifiable):
@@ -20,17 +22,17 @@ class Brain(UniquelyIdentifiable):
 	
 	"""
 
-	def __init__(self, connectome, active_connectome=None):
+	def __init__(self, connectome: Connectome, recipe: BrainRecipe = None):
 		super(Brain, self).__init__()
 		self.connectome: Connectome = connectome
-		self.active_connectome: Dict[BrainPart, set[BrainPart]] = {}
-		if active_connectome is not None:
-			self.active_connectome = active_connectome
+		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = {}
+		self.recipe = recipe or None
 
 	def next_round(self):
 		return self.connectome.next_round(self.active_connectome)
 
 	def add_brain_part(self, brain_part: BrainPart):
+		self.recipe.append(brain_part)
 		return self.connectome.add_brain_part(brain_part)
 
 	next_round.__doc__ = Connectome.next_round.__doc__
@@ -67,3 +69,21 @@ class Brain(UniquelyIdentifiable):
 
 	def get_support(self, area: Area):
 		pass
+
+	def __enter__(self):
+		for area in self.recipe.areas:
+			area.bind(brain=self)
+
+		for assembly in self.recipe.assemblies:
+			assembly.bind(brain=self)
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		for area in self.recipe.areas:
+			area.bind('brain')
+
+		for assembly in self.recipe.assemblies:
+			assembly.bind('brain')
+
+
+def bake(recipe: BrainRecipe, connectome_cls):
+	return Brain(connectome_cls(), recipe=recipe)

@@ -1,7 +1,10 @@
+from __future__ import annotations
 import math
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 import uuid
 from uuid import UUID
+if TYPE_CHECKING:
+	from .brain import Brain
 
 from utils.bindable import Bindable, bindable_property
 
@@ -29,11 +32,11 @@ class Area(UniquelyIdentifiable):
 			self.k = math.sqrt(n)
 
 	@bindable_property
-	def winners(self, *, brain: 'Brain'):
+	def winners(self, *, brain: Brain):
 		return brain.get_winners(self)
 
 	@bindable_property
-	def support(self, *, brain: 'Brain'):
+	def support(self, *, brain: Brain):
 		return brain.get_support(self)
 
 	def __repr__(self):

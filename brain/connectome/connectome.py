@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 
-from .components import BrainPart, Connection
+from brain.components import BrainPart, Connection
 
 
 class Connectome:

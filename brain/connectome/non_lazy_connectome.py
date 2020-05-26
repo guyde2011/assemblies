@@ -4,7 +4,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
-from .components import BrainPart, Connection
+from brain.components import BrainPart, Connection
 from .connectome import Connectome
 
 

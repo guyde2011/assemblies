@@ -1,11 +1,11 @@
 from functools import wraps
-from typing import Optional, cast, Any, Tuple, Dict, Set
+from typing import Optional, Any, Tuple, Dict, Set, Generic
 from inspect import signature, Parameter
 
-from utils.implicit_resolution import ImplicitResolution, implicit_property
+from utils.implicit_resolution import ImplicitResolution, implicit_property, T
 
 
-class Bindable:
+class Bindable(Generic[T]):
     """
     Bindable decorator for classes
     This enables auto-filling parameters into the class functions
@@ -26,12 +26,12 @@ class Bindable:
         self.params: Tuple[str, ...] = params
 
     @staticmethod
-    def implicitly_resolve(instance: Any, param_name: str) -> Tuple[bool, Optional[Any]]:
+    def implicitly_resolve(instance: T, param_name: str) -> Tuple[bool, Optional[Any]]:
         _bound_params: Dict[str, Any] = getattr(instance, '_bound_params', {})
         return param_name in _bound_params, _bound_params.get(param_name, None)
 
     @staticmethod
-    def implicitly_resolve_many(instances: Tuple[Any], param_name: str, graceful: bool = True)\
+    def implicitly_resolve_many(instances: Tuple[T], param_name: str, graceful: bool = True)\
             -> Tuple[bool, Optional[Any]]:
         _options: Tuple[Tuple[bool, Optional[Any]], ...] = tuple(Bindable.implicitly_resolve(instance, param_name)
                                                                  for instance in instances)
@@ -69,7 +69,7 @@ class Bindable:
         setattr(cls, '__init__', new_init)
 
         # Many possible bound parameters
-        def bind(self, **kwargs):
+        def bind(self: T, **kwargs):
             """Binds (the) parameters {0} to the instance"""
             problem: str = next((kwarg for kwarg in kwargs if kwarg not in params), None)
             if problem:
@@ -78,7 +78,19 @@ class Bindable:
             for k, v in kwargs.items():
                 self._bound_params[k] = v
 
-        def unbind(self, *names):
+        def bind_like(self: T, *others: T):
+            """Binds this instance like another instance"""
+            if len(others) == 0:
+                self._bound_params = {}
+                return
+
+            self._bound_params = getattr(others[0], '_bound_params', {})
+            for other in others[1:]:
+                for key, value in getattr(other, '_bound_params', {}):
+                    if key in self._bound_params and self._bound_params.get(key) != value:
+                        self._bound_params.pop(key)
+
+        def unbind(self: T, *names: str):
             """Unbinds (the) parameters {0} from the instance, pass no names to unbind all"""
             problem: str = next((name for name in names if name not in params), None)
             if problem:
@@ -102,6 +114,7 @@ class Bindable:
         # Add bind & unbind to the class
         setattr(cls, 'bind', bind)
         setattr(cls, 'unbind', unbind)
+        setattr(cls, 'bind_like', bind_like)
 
         return cls
 

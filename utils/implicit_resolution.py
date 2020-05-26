@@ -1,25 +1,27 @@
 from functools import partial
 from inspect import Parameter, signature, Signature
-from typing import Tuple, Any, Optional, Callable
+from typing import Tuple, Any, Optional, Callable, TypeVar, Generic
+
+T = TypeVar('T')
 
 
-class ImplicitResolution:
+class ImplicitResolution(Generic[T]):
     """
     Implicit argument resolution decorator.
     Allows arguments of functions to be resolved on run-time according to some implicit resolution function.
     """
 
-    def __init__(self, resolve: Callable[[Any, str], Tuple[bool, Optional[Any]]], *params: str):
+    def __init__(self, resolve: Callable[[T, str], Tuple[bool, Optional[Any]]], *params: str):
         """
         Creates an implicit resolution decorator
         :param resolve: Mapping from (instance, param_name) -> (found, implicit_value)
         :param params: Parameters to allow implicit resolution for
         """
         self.params: Tuple[str, ...] = params
-        self.resolve: Callable[[Any, str], Tuple[bool, Optional[Any]]] = resolve
+        self.resolve: Callable[[T, str], Tuple[bool, Optional[Any]]] = resolve
 
     @staticmethod
-    def wrap_function(function, resolve: Callable[[Any, str], Tuple[bool, Optional[Any]]],
+    def wrap_function(function, resolve: Callable[[T, str], Tuple[bool, Optional[Any]]],
                       param_names: Tuple[str, ...]):
         """
         Wraps a function to comply with the implicit resolution decoration, auto-fills resolved parameters
