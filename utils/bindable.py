@@ -1,6 +1,8 @@
-from typing import List, Optional, cast
-from inspect import signature, Parameter, Signature, ismethod
-from functools import partial
+from functools import wraps
+from typing import Optional, cast, Any, Tuple, Dict, Set
+from inspect import signature, Parameter
+
+from utils.implicit_resolution import ImplicitResolution, implicit_property
 
 
 class Bindable:
@@ -21,66 +23,48 @@ class Bindable:
         Creates a bindable decorator
         :param params: Parameters available for instance binding
         """
-        self.params: List[str] = list(params)
+        self.params: Tuple[str, ...] = params
 
     @staticmethod
-    def wrap_function(function, param_names: List[str]):
-        """Wraps a function to comply with the bindable decoration, auto-fills bound parameters of the instance"""
-        # Get the signature of the function we are wrapping
-        sig: Signature = signature(function)
-        effective_params = [param for name, param in sig.parameters.items() if name != 'self']
-        # Get parameters which can be bound to the instance
-        bindable_params: List[Parameter] = list(param for param in effective_params if param.name in param_names)
-        bindable_param_names: List[str] = list(param.name for param in bindable_params)
-        # Check for possibly bound parameters which are not keyword-only
-        problem: Optional[Parameter] = next((param for param in bindable_params if param.kind != Parameter.KEYWORD_ONLY)
-                                            , None)
-        if problem:
-            # Allow possibly bound parameters to be keyword-only, to avoid bugs and complications
-            raise Exception(f"Cannot bind parameter [{problem.name}] of [{function.__name__}], must be keyword-only")
-
-        class Wrapper:
-            """
-            Wrapper class to enable property functionality when all parameters are already bound
-            """
-
-            @staticmethod
-            def get_partial_function(instance, owner, bound_method: bool):
-                """Gives bound parameters a default value, which is the parameter bound to the instance"""
-                return partial(function.__get__(instance if bound_method else None, owner),
-                               **{name: value for name, value in getattr(instance, '_bound_params', {}).items()
-                                  if name in bindable_param_names})
-
-            def __get__(self, instance, owner):
-                if instance is not None:
-                    func = self.get_partial_function(instance, owner, False)
-                    if all(param.default != Parameter.empty or name == 'self' for name, param
-                           in signature(func).parameters.items()) and getattr(function, 'bindable_property', False):
-                        # Check if function should be made a property when all parameters are bound
-                        # and check if all parameters are bound
-                        return property(func).__get__(instance, owner)
-
-                    return self.get_partial_function(instance, owner, True)
-
-                return function.__get__(instance, owner)
-
-        return Wrapper()
+    def implicitly_resolve(instance: Any, param_name: str) -> Tuple[bool, Optional[Any]]:
+        _bound_params: Dict[str, Any] = getattr(instance, '_bound_params', {})
+        return param_name in _bound_params, _bound_params.get(param_name, None)
 
     @staticmethod
-    def wrap_class(cls, params: List[str]):
+    def implicitly_resolve_many(instances: Tuple[Any], param_name: str, graceful: bool = True)\
+            -> Tuple[bool, Optional[Any]]:
+        _options: Tuple[Tuple[bool, Optional[Any]], ...] = tuple(Bindable.implicitly_resolve(instance, param_name)
+                                                                 for instance in instances)
+        options: Set[Any] = set(implicit_value for found, implicit_value in _options if found)
+        if len(options) == 1:
+            return True, options.pop()
+        elif len(options) > 1 and not graceful:
+            raise Exception("Multiple different bound parameters for the different instances")
+
+        return False, None
+
+    @staticmethod
+    def wrap_class(cls, params: Tuple[str, ...]):
         """
         Wraps a class to comply with the bindable decoration: wraps all methods and adds bind & unbind functionality
         :param cls: Class to decorate
         :param params: Parameters to allow binding for
         :return: Decorated class
         """
-
-        # Add an inner dictionary for storing bound parameters
-        setattr(cls, '_bound_params', {})
+        implicit_resolution: ImplicitResolution = ImplicitResolution(Bindable.implicitly_resolve, *params)
         for name, func in vars(cls).items():
             # Decorate all non-protected functions
             if callable(func) and not name.startswith('_') and not isinstance(func, staticmethod):
-                setattr(cls, name, Bindable.wrap_function(func, params))
+                setattr(cls, name, implicit_resolution(func))
+
+        original_init = getattr(cls, '__init__', lambda self, *args, **kwargs: None)
+
+        @wraps(original_init)
+        def new_init(self, *args, **kwargs):
+            original_init(self, *args, **kwargs)
+            self._bound_params = {}
+
+        setattr(cls, '__init__', new_init)
 
         if len(params) == 1:
             # Only one possible bound parameter
@@ -135,5 +119,4 @@ class Bindable:
 
 def bindable_property(function):
     """Decorator declaring a function to become a property once all parameters are bound in the instance"""
-    setattr(function, 'bindable_property', True)
-    return function
+    return implicit_property(function)

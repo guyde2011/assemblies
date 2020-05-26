@@ -1,3 +1,4 @@
+from utils.implicit_resolution import ImplicitResolution
 from ..utils.bindable import Bindable
 from ..utils.repeat import Repeat
 from ..brain.connectome.components import Stimulus
@@ -142,12 +143,13 @@ class Assembly(BrainPart):
             assert isinstance(other, (Assembly, Assembly.AssemblyTuple))
             return Assembly.AssemblyTuple(*(self.assemblies + ((other, ) if isinstance(other, Assembly) else other)))
 
-        def __rshift__(self, other: Area):
+        @ImplicitResolution(lambda instance, name: Bindable.implicitly_resolve_many(instance.assemblies, name, False),
+                            'brain')
+        def __rshift__(self, other: Area, *, brain: Brain):
             assert isinstance(other, Area)
-            # TODO: Eyal, isn't this supposed to be project (fixed)? Add associate as well
-            # Assembly.fire_many(self.assemblies[0].brain, self.assemblies, other)
-            # This is a syntactic sugar, will work only if assembly is already bound!
-            self.assemblies[0].project(other)
+            # TODO: Eyal fix this to new API? Add associate as well
+            # This is a syntactic sugar, will work only if assembly is already bound! See implicitly_resolve_many
+            Assembly.fire_many(brain, self.assemblies, other)
 
         def __iter__(self):
             return iter(self.assemblies)
