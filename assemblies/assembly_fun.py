@@ -1,11 +1,16 @@
 from brain import Brain
 from utils.implicit_resolution import ImplicitResolution
-from utils.bindable import Bindable, protected_bindable
+from utils.bindable import Bindable
 from utils.repeat import Repeat
 from brain.connectome.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
 from typing import Iterable, Union, Tuple, List, Dict
 
 Projectable = Union['Assembly', Stimulus]
+
+bound_assembly_tuple = ImplicitResolution(lambda instance, name:
+                                          Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'brain')
+repeat = Repeat(resolve=lambda self, *args, **kwargs: self.t)
+multiple_assembly_repeat = Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
 
 
 @Bindable('brain')
@@ -72,7 +77,7 @@ class Assembly(UniquelyIdentifiable):
             for t in mapping[p]:
                 brain.disinhibit(p, t)
 
-    @Repeat(resolve=lambda self, *args, **kwargs: self.t)
+    @repeat
     def project(self, area: Area, *, brain: Brain) -> 'Assembly':
         """
         Projects an assembly into an area
@@ -91,7 +96,7 @@ class Assembly(UniquelyIdentifiable):
         # brain is automatically resolved in self.project!
         return self.project(other)
 
-    @Repeat(resolve=lambda self, *args, **kwargs: self.t)
+    @repeat
     def reciprocal_project(self, area: Area, *, brain: Brain) -> 'Assembly':
         """
         Reciprocally projects an assembly into an area,
@@ -106,7 +111,7 @@ class Assembly(UniquelyIdentifiable):
         return projected_assembly
 
     @staticmethod
-    @Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
+    @multiple_assembly_repeat
     def _merge(assembly1: 'Assembly', assembly2: 'Assembly', area: Area, *, brain: Brain) -> 'Assembly':
         """
         Creates a new assembly with both assemblies as parents,
@@ -126,7 +131,7 @@ class Assembly(UniquelyIdentifiable):
         return merged_assembly
 
     @staticmethod
-    @Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
+    @multiple_assembly_repeat
     def _associate(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly') -> None:
         """
         Associates two assemblies, strengthening their bi-directional links
@@ -150,8 +155,7 @@ class Assembly(UniquelyIdentifiable):
             assert isinstance(other, (Assembly, Assembly.AssemblyTuple))
             return Assembly.AssemblyTuple(*(self.assemblies + ((other, ) if isinstance(other, Assembly) else other)))
 
-        @ImplicitResolution(lambda instance, name: Bindable.implicitly_resolve_many(instance.assemblies, name, False),
-                            'brain')
+        @bound_assembly_tuple
         def __rshift__(self, other: Area, *, brain: Brain):
             assert isinstance(other, Area)
             # TODO: Eyal fix this to new API? Add associate as well
