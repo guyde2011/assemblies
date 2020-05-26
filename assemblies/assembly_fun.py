@@ -106,7 +106,7 @@ class Assembly(BrainPart):
 
     @staticmethod
     @Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
-    def merge(assembly1: 'Assembly', assembly2: 'Assembly', area: Area, *, brain: Brain) -> 'Assembly':
+    def _merge(assembly1: 'Assembly', assembly2: 'Assembly', area: Area, *, brain: Brain) -> 'Assembly':
         """
         Creates a new assembly with both assemblies as parents,
         practically creates a new assembly with one-directional links from parents
@@ -126,7 +126,7 @@ class Assembly(BrainPart):
 
     @staticmethod
     @Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
-    def associate(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly') -> None:
+    def _associate(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly') -> None:
         """
         Associates two assemblies, strengthening their bi-directional links
         :param brain:
