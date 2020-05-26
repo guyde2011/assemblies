@@ -52,15 +52,16 @@ class Bindable:
         :return: Decorated class
         """
         implicit_resolution: ImplicitResolution = ImplicitResolution(Bindable.implicitly_resolve, *params)
-        for name, func in vars(cls).items():
+        for func_name, func in vars(cls).items():
             # Decorate all non-protected functions
-            if callable(func) and not name.startswith('_') and not isinstance(func, staticmethod):
-                setattr(cls, name, implicit_resolution(func))
+            if callable(func) and not func_name.startswith('_') and not isinstance(func, staticmethod):
+                setattr(cls, func_name, implicit_resolution(func))
 
         original_init = getattr(cls, '__init__', lambda self, *args, **kwargs: None)
 
         @wraps(original_init)
         def new_init(self, *args, **kwargs):
+            # Add _bound_params dictionary to instance
             original_init(self, *args, **kwargs)
             self._bound_params = {}
 
