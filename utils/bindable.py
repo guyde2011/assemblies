@@ -79,10 +79,13 @@ class Bindable:
                 self._bound_params[k] = v
 
         def unbind(self, *names):
-            """Unbinds (the) parameters {0} from the instance"""
+            """Unbinds (the) parameters {0} from the instance, pass no names to unbind all"""
             problem: str = next((name for name in names if name not in params), None)
             if problem:
                 raise Exception(f"Cannot unbind parameter [{problem}], was not declared bindable")
+
+            if len(names) == 0:
+                names = tuple(self._bound_params.keys())
 
             for name in names:
                 self._bound_params.pop(name)
