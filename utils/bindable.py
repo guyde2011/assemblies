@@ -13,7 +13,7 @@ class Bindable:
      which contains a function foo: (self, bar: int) -> 2 * bar, enables the following behaviour
 
     fooable = Fooable()
-    fooable.bind(5)
+    fooable.bind(bar=5)
     fooable.foo() == 10
     fooable.foo(bar=10) == 20
     """
