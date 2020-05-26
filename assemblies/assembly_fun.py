@@ -1,5 +1,5 @@
 from utils.implicit_resolution import ImplicitResolution
-from ..utils.bindable import Bindable
+from ..utils.bindable import Bindable, protected_bindable
 from ..utils.repeat import Repeat
 from ..brain.connectome.components import Stimulus
 from ..brain.brain import *
@@ -72,17 +72,23 @@ class Assembly(BrainPart):
                 brain.disinhibit(p, t)
 
     @Repeat(resolve=lambda self, *args, **kwargs: self.t)
-    def project(self, area: Area, *, brain) -> 'Assembly':
+    def project(self, area: Area, *, brain: Brain) -> 'Assembly':
         """
         Projects an assembly into an area
         :param brain:
         :param area:
         :return: Resulting projected assembly
         """
+        assert isinstance(area, Area), "Project target must be an Area"
         projected_assembly: Assembly = Assembly([self], area, self.support_size, self.t)
         Assembly.fire_many(brain, [self], area)
         projected_assembly.update_support(brain, brain.get_winners(area))
         return projected_assembly
+
+    def __rshift__(self, other: Area) -> 'Assembly':
+        # If brain is not bound, will throw an exception,
+        # brain is automatically resolved in self.project!
+        return self.project(other)
 
     @Repeat(resolve=lambda self, *args, **kwargs: self.t)
     def reciprocal_project(self, area: Area, *, brain: Brain) -> 'Assembly':

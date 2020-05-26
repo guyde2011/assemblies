@@ -54,7 +54,8 @@ class Bindable:
         implicit_resolution: ImplicitResolution = ImplicitResolution(Bindable.implicitly_resolve, *params)
         for func_name, func in vars(cls).items():
             # Decorate all non-protected functions
-            if callable(func) and not func_name.startswith('_') and not isinstance(func, staticmethod):
+            if callable(func) and (not func_name.startswith('_') or getattr(func, 'override_protection', False))\
+                    and not isinstance(func, staticmethod):
                 setattr(cls, func_name, implicit_resolution(func))
 
         original_init = getattr(cls, '__init__', lambda self, *args, **kwargs: None)
@@ -121,3 +122,9 @@ class Bindable:
 def bindable_property(function):
     """Decorator declaring a function to become a property once all parameters are bound in the instance"""
     return implicit_property(function)
+
+
+def protected_bindable(function):
+    """Decorator declaring to attempt looking for bound parameters of a protected function"""
+    setattr(function, 'override_protection', True)
+    return function
