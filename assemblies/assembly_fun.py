@@ -112,7 +112,7 @@ class Assembly(UniquelyIdentifiable):
 
     @staticmethod
     @multiple_assembly_repeat
-    def _merge(assembly1: 'Assembly', assembly2: 'Assembly', area: Area, *, brain: Brain) -> 'Assembly':
+    def _merge(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly', area: Area) -> 'Assembly':
         """
         Creates a new assembly with both assemblies as parents,
         practically creates a new assembly with one-directional links from parents
