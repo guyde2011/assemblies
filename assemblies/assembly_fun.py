@@ -35,7 +35,7 @@ class Assembly(BrainPart):
     def _update_support(self, brain: Brain, winners: List[int]):
         # TODO: Tomer, need to index by brain
         # Something along the lines of self.supports[brain] = ...
-        # TODO: Tomer, maybe add function for update_hook and then override it from the driver? Seems like the more "cleab" way of approaching this
+        # TODO: Tomer, maybe add function for update_hook and then override it from the driver? Seems like the more "clean" way of approaching this
 
         oldest = 1
         for neuron in self.support:
