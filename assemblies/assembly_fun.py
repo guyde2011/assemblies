@@ -5,6 +5,7 @@ from utils.bindable import Bindable
 from utils.repeat import Repeat
 from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
 from typing import Iterable, Union, Tuple, List, Dict, TYPE_CHECKING
+from itertools import product
 
 if TYPE_CHECKING:
     from brain.brain_recipe import BrainRecipe
@@ -20,6 +21,7 @@ multiple_assembly_repeat = Repeat(resolve=lambda assembly1, assembly2, *args, **
 repeat = lambda x: x
 multiple_assembly_repeat = lambda x: x
 
+#TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
 
 class AssemblyTuple(object):
     """
@@ -44,6 +46,7 @@ class AssemblyTuple(object):
         :return:
         """
         assert isinstance(other, Area)
+        return Assembly.merge(self.assemblies, other)
 
     def __iter__(self):
         return iter(self.assemblies)
@@ -103,10 +106,11 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
             del self.support[neuron]
 
     @staticmethod
-    def _fire(brain: Brain, mapping: Dict[BrainPart, List[BrainPart]]):
+    def _fire(mapping: Dict[BrainPart, List[BrainPart]], *, brain: Brain = None):
         """
         Fire an assembly
         TODO: Tomer, this is an helper function for you right? If so, move to where relevant
+        TODO: Karidi, make sure brain binding here makes sense
         :param brain:
         :param mapping:
         :return:
@@ -141,7 +145,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         return projected_assembly
 
     @repeat
-    def reciprocal_project(self, area: Area, *, brain: Brain) -> 'Assembly':
+    def reciprocal_project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
         """
         Reciprocally projects an assembly into an area,
         creating a projected assembly with strong bi-directional links to the current one
@@ -150,13 +154,13 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :return: Resulting projected assembly
         """
         projected_assembly: Assembly = self.project(brain, area)
-        Assembly.fire_many(brain, [projected_assembly], self.area)
+        Assembly.fire({projected_assembly: area})
         self.update_support(brain, brain.winners[self.area])
         return projected_assembly
 
     @staticmethod
     @multiple_assembly_repeat
-    def _merge(assemblies: [Assembly], area: Area, *, brain: Brain = None) -> 'Assembly':
+    def merge(assemblies: [Assembly], area: Area, *, brain: Brain = None) -> 'Assembly':
         """
         Creates a new assembly with all input assemblies as parents,
         practically creates a new assembly with one-directional links from parents
@@ -167,14 +171,14 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :param area:
         :return: Resulting merged assembly
         """
-        assert len(assemblies)!=0, "tried to merge with empty input"
+        assert len(assemblies) != 0, "tried to merge with empty input"
 
         # TODO: Which support size ot select? Maybe support size should be a global variable?
         # Lets think about this
         merged_assembly: Assembly = Assembly(assemblies, area, assemblies[0].support_size, t=assemblies[0].t,
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
-            Assembly.fire(brain, {ass: area for ass in assemblies})
+            Assembly.fire({ass: area for ass in assemblies})
             merged_assembly.update_support(brain, brain.winners[area])
 
         merged_assembly.bind_like(assemblies)
@@ -182,16 +186,23 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
 
     @staticmethod
     @multiple_assembly_repeat
-    def _associate(assembly1: 'Assembly', assembly2: 'Assembly', *, brain: Brain) -> None:
+    def _associate(a: [Assembly], b: [Assembly], *, brain: Brain = None) -> None:
         """
-        Associates two assemblies, strengthening their bi-directional links
-        :param brain:
-        :param assembly1:
-        :param assembly2:
-        :return:
+        Associates two lists of assemblies, by strengthening each bond in the
+        corresponding bipartite graph.
+        for simple binary operation use Assembly.associate([a],[b]).
+        for each x in A, y in B, associate (x,y).
+        A1 z-z B1
+        A2 -X- B2
+        A3 z-z B3
+        :param a: first list
+        :param b: second list
         """
-        assert assembly1.area_name == assembly2.area_name, "Areas are not the same"
-        Assembly.merge(brain, assembly1, assembly2, assembly1.area)
+        assert 0 not in [len(a), len(b)], "attempted to associate empty list"
+        assert len(set([x.area for x in a+b])) <= 1, "can only associate assemblies in the same area"
+        pairs = product(a, b)
+        for x, y in pairs:
+            Assembly.merge([x, y], x.area)
 
     def __lt__(self, other: 'Assembly'):
         """Checks that other is a child assembly of self"""
