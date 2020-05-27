@@ -5,6 +5,7 @@ from utils.bindable import Bindable
 from utils.repeat import Repeat
 from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
 from typing import Iterable, Union, Tuple, List, Dict, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from brain.brain_recipe import BrainRecipe
 
@@ -20,8 +21,36 @@ repeat = lambda x: x
 multiple_assembly_repeat = lambda x: x
 
 
+class AssemblyTuple(object):
+    """
+    Helper class for syntactic sugar, such as >> (merge)
+    """
+
+    def __init__(self, *assemblies: 'Assembly'):
+        self.assemblies: Tuple['Assembly'] = assemblies
+
+    def __add__(self, other):
+        """Add two assembly tuples"""
+        assert isinstance(other, (Assembly, Assembly.AssemblyTuple))
+        return Assembly.AssemblyTuple(*(self.assemblies + ((other,) if isinstance(other, Assembly) else other)))
+
+    @bound_assembly_tuple
+    def __rshift__(self, other: Area, *, brain: Brain):
+        """
+        in the context of assemblies, >> symbolizes merge.
+        Example: (within a brain context) (a1+a2+a3)>>area
+        :param other:
+        :param brain:
+        :return:
+        """
+        assert isinstance(other, Area)
+
+    def __iter__(self):
+        return iter(self.assemblies)
+
+
 @Bindable('brain')
-class Assembly(UniquelyIdentifiable):
+class Assembly(UniquelyIdentifiable, AssemblyTuple):
     """
     the main assembly object. according to our implementation, the main data of an assembly
     is his parents. we also keep a name for simulation puposes.
@@ -37,7 +66,12 @@ class Assembly(UniquelyIdentifiable):
         :param support_size: TODO: Tomer, fill in?
         :param t: Number of times to repeat each operation
         """
-        super(Assembly, self).__init__()
+
+        UniquelyIdentifiable.__init__(self)
+        AssemblyTuple.__init__(self, self)
+
+        for parent_class in Assembly.__bases__:
+            parent_class.__init__(self)
         # Removed name from parameters
         self.parents: List[Projectable] = list(parents)
         self.area: Area = area
@@ -69,7 +103,7 @@ class Assembly(UniquelyIdentifiable):
             del self.support[neuron]
 
     @staticmethod
-    def fire(brain: Brain, mapping: Dict[BrainPart, List[BrainPart]]):
+    def _fire(brain: Brain, mapping: Dict[BrainPart, List[BrainPart]]):
         """
         Fire an assembly
         TODO: Tomer, this is an helper function for you right? If so, move to where relevant
@@ -101,15 +135,10 @@ class Assembly(UniquelyIdentifiable):
         if brain is not None:
             Assembly.fire(brain, {self.area: [area]})
             # TODO: Tomer, update
-            #projected_assembly.update_support(brain, brain.winners[area])
+            # projected_assembly.update_support(brain, brain.winners[area])
 
         projected_assembly.bind_like(self)
         return projected_assembly
-
-    def __rshift__(self, other: Area) -> 'Assembly':
-        # If brain is not bound, will throw an exception,
-        # brain is automatically resolved in self.project!
-        return self.project(other)
 
     @repeat
     def reciprocal_project(self, area: Area, *, brain: Brain) -> 'Assembly':
@@ -151,7 +180,7 @@ class Assembly(UniquelyIdentifiable):
 
     @staticmethod
     @multiple_assembly_repeat
-    def _associate(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly') -> None:
+    def _associate(assembly1: 'Assembly', assembly2: 'Assembly', *, brain: Brain) -> None:
         """
         Associates two assemblies, strengthening their bi-directional links
         :param brain:
@@ -162,28 +191,6 @@ class Assembly(UniquelyIdentifiable):
         assert assembly1.area_name == assembly2.area_name, "Areas are not the same"
         Assembly.merge(brain, assembly1, assembly2, assembly1.area)
 
-    class AssemblyTuple(object):
-        """
-        Helper class for syntactic sugar
-        """
-        def __init__(self, *assemblies: 'Assembly'):
-            self.assemblies: Tuple['Assembly'] = assemblies
-
-        def __add__(self, other):
-            """Add two assembly tuples"""
-            assert isinstance(other, (Assembly, Assembly.AssemblyTuple))
-            return Assembly.AssemblyTuple(*(self.assemblies + ((other, ) if isinstance(other, Assembly) else other)))
-
-        @bound_assembly_tuple
-        def __rshift__(self, other: Area, *, brain: Brain):
-            assert isinstance(other, Area)
-            # TODO: Eyal fix this to new API? Add associate as well
-            # This is a syntactic sugar, will work only if assembly is already bound! See implicitly_resolve_many
-            Assembly.fire_many(brain, self.assemblies, other)
-
-        def __iter__(self):
-            return iter(self.assemblies)
-
     def __lt__(self, other: 'Assembly'):
         """Checks that other is a child assembly of self"""
         return isinstance(other, Assembly) and other in self.parents
@@ -191,9 +198,3 @@ class Assembly(UniquelyIdentifiable):
     def __gt__(self, other: 'Assembly'):
         """Checks if self is a child assembly of other"""
         return isinstance(other, Assembly) and self in other.parents
-
-    def __add__(self, other: Union['Assembly', AssemblyTuple]):
-        """Creates an assembly tuple, used for syntactic sugars"""
-        assert isinstance(other, (Assembly, Assembly.AssemblyTuple))
-        return Assembly.AssemblyTuple(self) +\
-               Assembly.AssemblyTuple(other) if isinstance(other, Assembly) else Assembly.AssemblyTuple(*other)
