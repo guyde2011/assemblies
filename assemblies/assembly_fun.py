@@ -156,26 +156,28 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
 
     @staticmethod
     @multiple_assembly_repeat
-    def _merge(assembly1: 'Assembly', assembly2: 'Assembly', area: Area, *, brain: Brain = None) -> 'Assembly':
+    def _merge(assemblies: [Assembly], area: Area, *, brain: Brain = None) -> 'Assembly':
         """
-        Creates a new assembly with both assemblies as parents,
+        Creates a new assembly with all input assemblies as parents,
         practically creates a new assembly with one-directional links from parents
+        ONLY CALL AS: Assembly.merge(...), as the function is invariant under input order.
         :param brain:
         :param assembly1:
         :param assembly2:
         :param area:
         :return: Resulting merged assembly
         """
-        assert assembly1.area_name != assembly2.area_name, "Areas are the same"
-        # Which support size ot select? Maybe support size should be a global variable?
+        assert len(assemblies)!=0, "tried to merge with empty input"
+
+        # TODO: Which support size ot select? Maybe support size should be a global variable?
         # Lets think about this
-        merged_assembly: Assembly = Assembly([assembly1, assembly2], area, assembly1.support_size, t=assembly1.t,
-                                             appears_in=set(assembly1.appears_in).intersection(assembly2.appears_in))
+        merged_assembly: Assembly = Assembly(assemblies, area, assemblies[0].support_size, t=assemblies[0].t,
+                                             appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
-            Assembly.fire_many(brain, [assembly1, assembly2], area)
+            Assembly.fire(brain, {ass: area for ass in assemblies})
             merged_assembly.update_support(brain, brain.winners[area])
 
-        merged_assembly.bind_like(assembly1, assembly2)
+        merged_assembly.bind_like(assemblies)
         return merged_assembly
 
     @staticmethod
