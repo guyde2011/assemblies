@@ -21,7 +21,8 @@ multiple_assembly_repeat = Repeat(resolve=lambda assembly1, assembly2, *args, **
 repeat = lambda x: x
 multiple_assembly_repeat = lambda x: x
 
-#TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
+
+# TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
 
 class AssemblyTuple(object):
     """
@@ -73,8 +74,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         UniquelyIdentifiable.__init__(self)
         AssemblyTuple.__init__(self, self)
 
-        for parent_class in Assembly.__bases__:
-            parent_class.__init__(self)
         # Removed name from parameters
         self.parents: List[Projectable] = list(parents)
         self.area: Area = area
@@ -199,7 +198,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :param b: second list
         """
         assert 0 not in [len(a), len(b)], "attempted to associate empty list"
-        assert len(set([x.area for x in a+b])) <= 1, "can only associate assemblies in the same area"
+        assert len(set([x.area for x in a + b])) <= 1, "can only associate assemblies in the same area"
         pairs = product(a, b)
         for x, y in pairs:
             Assembly.merge([x, y], x.area)
