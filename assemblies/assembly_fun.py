@@ -30,7 +30,7 @@ class AssemblyTuple(object):
     """
 
     def __init__(self, *assemblies: Assembly):
-        self.assemblies: Tuple[Assembly] = assemblies
+        self.assemblies: Tuple[Assembly, ...] = assemblies
 
     def __add__(self, other: AssemblyTuple):
         """Add two assembly tuples"""
@@ -75,7 +75,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         AssemblyTuple.__init__(self, self)
 
         # Removed name from parameters
-        self.parents: List[Projectable] = list(parents)
+        self.parents: Tuple[Projectable, ...] = tuple(parents)
         self.area: Area = area
         self.support_size: int = support_size
         # TODO: Tomer, update to depend on brain as well?
@@ -86,7 +86,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         for recipe in self.appears_in:
             recipe.append(self)
 
-    def _update_support(self, brain: Brain, winners: List[int]):
+    def _update_support(self, brain: Brain, winners: Iterable[int]):
         # TODO: Tomer, need to index by brain
         # Something along the lines of self.supports[brain] = ...
         # TODO: Tomer, maybe add function for update_hook and then override it from the driver? Seems like the more "clean" way of approaching this
@@ -188,7 +188,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
 
     @staticmethod
     @multiple_assembly_repeat
-    def _associate(a: [Assembly], b: [Assembly], *, brain: Brain = None) -> None:
+    def _associate(a: Tuple[Assembly, ...], b: Tuple[Assembly, ...], *, brain: Brain = None) -> None:
         """
         Associates two lists of assemblies, by strengthening each bond in the
         corresponding bipartite graph.
@@ -200,7 +200,10 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :param a: first list
         :param b: second list
         """
-        assert 0 not in [len(a), len(b)], "attempted to associate empty list"
+        # Yonatan: It is OK to associate empty lists?
+        #assert 0 not in [len(a), len(b)], "attempted to associate empty list"
+        # Yonatan: Let's talk about this but maybe we allow associate also from different areas?
+        # looks like a nice feature
         assert len(set([x.area for x in a + b])) <= 1, "can only associate assemblies in the same area"
         pairs = product(a, b)
         for x, y in pairs:
