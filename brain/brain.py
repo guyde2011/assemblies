@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from functools import cached_property
-from typing import Dict, Set, TYPE_CHECKING
+from typing import Dict, Set, TYPE_CHECKING, List, Optional, Union
 
 from .components import BrainPart, Stimulus
 from .connectome import Connectome
 from brain.components import Area, UniquelyIdentifiable
 if TYPE_CHECKING:
 	from .brain_recipe import BrainRecipe
+	from assemblies import Assembly
 
 
 class Brain(UniquelyIdentifiable):
@@ -32,6 +33,7 @@ class Brain(UniquelyIdentifiable):
 		self.recipe = recipe or BrainRecipe()
 		self.connectome: Connectome = connectome
 		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = defaultdict(lambda: set())
+		self.ctx_stack: List[Dict[Union[BrainPart, Assembly], Optional[Brain]]] = []
 
 	def next_round(self):
 		return self.connectome.project(self.active_connectome)
@@ -80,20 +82,33 @@ class Brain(UniquelyIdentifiable):
 		return None
 
 	def __enter__(self):
+		current_ctx_stack: Dict[Union[BrainPart, Assembly], Optional[Brain]] = {}
+
 		for area in self.recipe.areas:
+			if 'brain' in area.bound_params:
+				current_ctx_stack[area] = area.bound_params['brain']
 			area.bind(brain=self)
 
 		for assembly in self.recipe.assemblies:
+			if 'brain' in assembly.bound_params:
+				current_ctx_stack[assembly] = assembly.bound_params['brain']
 			assembly.bind(brain=self)
 
+		self.ctx_stack.append(current_ctx_stack)
 		return self
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
+		current_ctx_stack: Dict[Union[BrainPart, Assembly], Optional[Brain]] = self.ctx_stack.pop()
+
 		for area in self.recipe.areas:
 			area.unbind('brain')
+			if area in current_ctx_stack:
+				area.bind(brain=current_ctx_stack[area])
 
 		for assembly in self.recipe.assemblies:
 			assembly.unbind('brain')
+			if assembly in current_ctx_stack:
+				assembly.bind(brain=current_ctx_stack[assembly])
 
 
 def bake(recipe: BrainRecipe, p: int, connectome_cls):

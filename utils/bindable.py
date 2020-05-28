@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import wraps, cached_property
 from typing import Optional, Any, Tuple, Dict, Set, Generic
 from inspect import signature, Parameter
 
@@ -103,6 +103,17 @@ class Bindable(Generic[T]):
                 if name in self._bound_params:
                     self._bound_params.pop(name)
 
+        @cached_property
+        def bound_params(_self):
+            class Proxy:
+                def __contains__(self, key: str):
+                    return key in getattr(_self, '_bound_params', {})
+
+                def __getitem__(self, key: str):
+                    return getattr(_self, '_bound_params', {})[key]
+
+            return Proxy()
+
         bind.__doc__ = bind.__doc__.format(params)
         unbind.__doc__ = unbind.__doc__.format(params)
 
@@ -111,11 +122,14 @@ class Bindable(Generic[T]):
                                                      [Parameter(name='self', kind=Parameter.POSITIONAL_OR_KEYWORD)] +
                                                      [Parameter(name=name, kind=Parameter.KEYWORD_ONLY)
                                                       for name in params])
+        # Set name for cached property
+        bound_params.__set_name__(cls, 'bound_params')
 
         # Add bind & unbind to the class
         setattr(cls, 'bind', bind)
         setattr(cls, 'unbind', unbind)
         setattr(cls, 'bind_like', bind_like)
+        setattr(cls, 'bound_params', bound_params)
 
         return cls
 
