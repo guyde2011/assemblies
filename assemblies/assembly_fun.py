@@ -29,13 +29,13 @@ class AssemblyTuple(object):
     Helper class for syntactic sugar, such as >> (merge)
     """
 
-    def __init__(self, *assemblies: 'Assembly'):
-        self.assemblies: Tuple['Assembly'] = assemblies
+    def __init__(self, *assemblies: Assembly):
+        self.assemblies: Tuple[Assembly] = assemblies
 
-    def __add__(self, other):
+    def __add__(self, other: AssemblyTuple):
         """Add two assembly tuples"""
-        assert isinstance(other, (Assembly, Assembly.AssemblyTuple))
-        return Assembly.AssemblyTuple(*(self.assemblies + ((other,) if isinstance(other, Assembly) else other)))
+        assert isinstance(other, AssemblyTuple), "Assemblies can be concatenated only to assemblies"
+        return Assembly.AssemblyTuple(self.assemblies + other.assemblies)
 
     @bound_assembly_tuple
     def __rshift__(self, other: Area, *, brain: Brain):
@@ -46,7 +46,7 @@ class AssemblyTuple(object):
         :param brain:
         :return:
         """
-        assert isinstance(other, Area)
+        assert isinstance(other, Area), "Assemblies must be merged onto an area"
         return Assembly.merge(self.assemblies, other)
 
     def __iter__(self):
@@ -143,6 +143,10 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         projected_assembly.bind_like(self)
         return projected_assembly
 
+    def __rrshift__(self, other: Area):
+        assert isinstance(other, Area), "Assembly must be projected onto an area"
+        self.project(other)
+
     @repeat
     def reciprocal_project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
         """
@@ -159,14 +163,13 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
 
     @staticmethod
     @multiple_assembly_repeat
-    def merge(assemblies: [Assembly], area: Area, *, brain: Brain = None) -> 'Assembly':
+    def _merge(assemblies: Tuple[Assembly, ...], area: Area, *, brain: Brain = None) -> 'Assembly':
         """
         Creates a new assembly with all input assemblies as parents,
         practically creates a new assembly with one-directional links from parents
         ONLY CALL AS: Assembly.merge(...), as the function is invariant under input order.
         :param brain:
-        :param assembly1:
-        :param assembly2:
+        :param assemblies:
         :param area:
         :return: Resulting merged assembly
         """
