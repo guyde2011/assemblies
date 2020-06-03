@@ -4,6 +4,7 @@ from functools import wraps
 
 
 def signature(func):
+    """Better signature function"""
     return getattr(func, '__signature__', None) or _signature(func)
 
 

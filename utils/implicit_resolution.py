@@ -66,6 +66,7 @@ class ImplicitResolution(Generic[T]):
                 :param bound_method: Flag indicating whether this should resemble a bound method
                 :return: Partial function with resolved parameters already passed
                 """
+                # We are using wraps to preserve the signature
                 return wraps(function)(partial(function.__get__(instance if bound_method else None, owner),
                                                **{name: value for name, (found, value) in
                                                   {param_name: resolve(instance, param_name)

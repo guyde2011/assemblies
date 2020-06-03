@@ -55,6 +55,7 @@ class Bindable(Generic[T]):
         """
         implicit_resolution: ImplicitResolution = ImplicitResolution(Bindable.implicitly_resolve, *params)
         for func_name, (func, bound_func) in variables(cls).items():
+            # Check function is not reserved
             if func_name in ('bind', 'unbind', 'bind_like', 'bound_params'):
                 continue
 

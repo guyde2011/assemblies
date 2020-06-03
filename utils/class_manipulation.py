@@ -3,6 +3,7 @@ from typing import Any, Dict, Tuple
 
 
 def variables(cls):
+    """Return all variables of a class: name -> (attribute, bound_attribute)"""
     result: Dict[str, Tuple[Any, Any]] = {}
     for name, attr in vars(cls).items():
         bound = getattr(cls, name)
@@ -15,5 +16,6 @@ def variables(cls):
 
 
 class FunctionWrapper:
+    """A helper class for wrapping functions, holds a signature"""
     def __init__(self, signature: Signature):
         self.__signature__ = signature
