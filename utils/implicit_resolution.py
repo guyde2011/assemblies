@@ -1,6 +1,9 @@
-from functools import partial
-from inspect import Parameter, signature, Signature
+from functools import partial, wraps
+from inspect import Parameter, Signature
 from typing import Tuple, Any, Optional, Callable, TypeVar, Generic
+
+from utils.class_manipulation import FunctionWrapper
+from utils.argument_manipulation import signature
 
 T = TypeVar('T')
 
@@ -46,10 +49,13 @@ class ImplicitResolution(Generic[T]):
             raise Exception(f"Cannot allow implicit resolution of parameter [{problem.name}] of [{function.__name__}]"
                             f", must be keyword-only")
 
-        class Wrapper:
+        class Wrapper(FunctionWrapper):
             """
             Wrapper class to enable property functionality when all parameters are resolved
             """
+
+            def __init__(self):
+                super(Wrapper, self).__init__(sig)
 
             @staticmethod
             def get_partial_function(instance, owner, bound_method: bool):
@@ -60,11 +66,11 @@ class ImplicitResolution(Generic[T]):
                 :param bound_method: Flag indicating whether this should resemble a bound method
                 :return: Partial function with resolved parameters already passed
                 """
-                return partial(function.__get__(instance if bound_method else None, owner),
-                               **{name: value for name, (found, value) in
-                                  {param_name: resolve(instance, param_name)
-                                   for param_name in resolvable_param_names}.items()
-                                  if found})
+                return wraps(function)(partial(function.__get__(instance if bound_method else None, owner),
+                                               **{name: value for name, (found, value) in
+                                                  {param_name: resolve(instance, param_name)
+                                                   for param_name in resolvable_param_names}.items()
+                                                  if found}))
 
             def __get__(self, instance, owner):
                 if instance is not None:

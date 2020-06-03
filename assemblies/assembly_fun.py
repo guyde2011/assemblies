@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from brain import Brain
+from utils.blueprints.recordable import Recordable
 from utils.implicit_resolution import ImplicitResolution
 from utils.bindable import Bindable
 from utils.repeat import Repeat
@@ -16,10 +18,6 @@ bound_assembly_tuple = ImplicitResolution(lambda instance, name:
                                           Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'brain')
 repeat = Repeat(resolve=lambda self, *args, **kwargs: self.t)
 multiple_assembly_repeat = Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
-
-# TODO: Fix repeat (Yonatan)
-repeat = lambda x: x
-multiple_assembly_repeat = lambda x: x
 
 
 # TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
@@ -53,6 +51,7 @@ class AssemblyTuple(object):
         return iter(self.assemblies)
 
 
+@Recordable('project', 'reciprocal_project', '_merge', '_associate')
 @Bindable('brain')
 class Assembly(UniquelyIdentifiable, AssemblyTuple):
     """
@@ -143,9 +142,9 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         projected_assembly.bind_like(self)
         return projected_assembly
 
-    def __rrshift__(self, other: Area):
+    def __rshift__(self, other: Area):  # noqa
         assert isinstance(other, Area), "Assembly must be projected onto an area"
-        self.project(other)
+        return self.project(other)
 
     @repeat
     def reciprocal_project(self, area: Area, *, brain: Brain = None) -> 'Assembly':

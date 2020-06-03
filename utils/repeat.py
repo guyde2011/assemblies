@@ -27,7 +27,7 @@ class Repeat:
 
             result = None
             for _ in range(t):
-                result = restricted_func(self, *args, **kwargs)
+                result = restricted_func(*args, **kwargs)
 
             return result
 

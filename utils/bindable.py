@@ -1,7 +1,9 @@
 from functools import wraps, cached_property
 from typing import Optional, Any, Tuple, Dict, Set, Generic
-from inspect import signature, Parameter
+from inspect import Parameter
 
+from utils.class_manipulation import variables
+from utils.argument_manipulation import signature
 from utils.implicit_resolution import ImplicitResolution, implicit_property, T
 
 
@@ -52,11 +54,18 @@ class Bindable(Generic[T]):
         :return: Decorated class
         """
         implicit_resolution: ImplicitResolution = ImplicitResolution(Bindable.implicitly_resolve, *params)
-        for func_name, func in vars(cls).items():
+        for func_name, (func, bound_func) in variables(cls).items():
+            if func_name in ('bind', 'unbind', 'bind_like', 'bound_params'):
+                continue
+
             # Decorate all non-protected functions
-            if callable(func) and (not func_name.startswith('_') or getattr(func, 'override_protection', False))\
-                    and not isinstance(func, staticmethod):
+            if callable(bound_func) and (not func_name.startswith('_') or getattr(func, 'override_protection', False))\
+                    and not isinstance(bound_func, staticmethod):
                 setattr(cls, func_name, implicit_resolution(func))
+
+        # Update params to include previous bindings
+        params: Tuple[str, ...] = tuple(getattr(cls, '_bindable_params', ()) + params)
+        setattr(cls, '_bindable_params', params)
 
         original_init = getattr(cls, '__init__', lambda self, *args, **kwargs: None)
 

@@ -112,4 +112,6 @@ class Brain(UniquelyIdentifiable):
 
 
 def bake(recipe: BrainRecipe, p: int, connectome_cls):
-	return Brain(connectome_cls(p, areas=recipe.areas, stimuli=recipe.stimuli), recipe=recipe)
+	brain = Brain(connectome_cls(p, areas=recipe.areas, stimuli=recipe.stimuli), recipe=recipe)
+	recipe.initialize(brain)
+	return brain

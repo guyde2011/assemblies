@@ -1,5 +1,10 @@
-from inspect import signature, Parameter
+from inspect import signature as _signature
+from inspect import Parameter
 from functools import wraps
+
+
+def signature(func):
+    return getattr(func, '__signature__', None) or _signature(func)
 
 
 def argument_restrict(func):
@@ -20,6 +25,17 @@ def argument_extend(*params: Parameter, restrict: bool = True):
         sig = signature(func)
         new_params = list(sig.parameters.values()) \
                      + [param for param in params if param.name not in sig.parameters]
+        new_sig = sig.replace(parameters=new_params)
+        func.__signature__ = new_sig
+        return func
+
+    return decorate
+
+
+def argument_explicit_restrict(*params: str):
+    def decorate(func):
+        sig = signature(func)
+        new_params = list(param for name, param in sig.parameters.items() if name not in params)
         new_sig = sig.replace(parameters=new_params)
         func.__signature__ = new_sig
         return func

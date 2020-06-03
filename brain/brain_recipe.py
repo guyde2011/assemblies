@@ -1,7 +1,11 @@
-from typing import List, Union
+from __future__ import annotations
+from typing import List, Union, TYPE_CHECKING, Dict, Optional
 
 from assemblies.assembly_fun import Assembly
 from brain.components import Area, Stimulus, BrainPart
+from utils.blueprints.recording import Recording
+if TYPE_CHECKING:
+    from brain import Brain
 
 
 class BrainRecipe:
@@ -10,6 +14,8 @@ class BrainRecipe:
         self.stimuli: List[Stimulus] = []
         self.assemblies: List[Assembly] = []
         self.extend(*parts)
+        self.initialization: Recording = Recording()
+        self.ctx_stack: List[Dict[Assembly, Recording]] = []
 
     def _add_area(self, area: Area):
         if area not in self.areas:
@@ -36,3 +42,25 @@ class BrainRecipe:
     def extend(self, *parts: Union[Assembly, BrainPart]):
         for part in parts:
             self.append(part)
+
+    def initialize(self, brain: Brain):
+        self.initialization.play(brain=brain)
+
+    def __enter__(self):
+        current_ctx_stack: Dict[Assembly, Optional[Recording]] = {}
+
+        for assembly in self.assemblies:
+            if 'recording' in assembly.bound_params:
+                current_ctx_stack[assembly] = assembly.bound_params['recording']
+            assembly.bind(recording=self.initialization)
+
+        self.ctx_stack.append(current_ctx_stack)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        current_ctx_stack: Dict[Assembly, Optional[Recording]] = self.ctx_stack.pop()
+
+        for assembly in self.assemblies:
+            assembly.unbind('brain')
+            if assembly in current_ctx_stack:
+                assembly.bind(brain=current_ctx_stack[assembly])
