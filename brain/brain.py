@@ -111,7 +111,7 @@ class Brain(UniquelyIdentifiable):
 				assembly.bind(brain=current_ctx_stack[assembly])
 
 
-def bake(recipe: BrainRecipe, p: int, connectome_cls):
+def bake(recipe: BrainRecipe, p: float, connectome_cls):
 	brain = Brain(connectome_cls(p, areas=recipe.areas, stimuli=recipe.stimuli), recipe=recipe)
 	recipe.initialize(brain)
 	return brain

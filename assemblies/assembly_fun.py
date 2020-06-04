@@ -6,7 +6,7 @@ from utils.implicit_resolution import ImplicitResolution
 from utils.bindable import Bindable
 from utils.repeat import Repeat
 from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
-from typing import Iterable, Union, Tuple, List, Dict, TYPE_CHECKING
+from typing import Iterable, Union, Tuple, List, Dict, TYPE_CHECKING, Set
 from itertools import product
 
 if TYPE_CHECKING:
@@ -17,11 +17,16 @@ Projectable = Union['Assembly', Stimulus]
 bound_assembly_tuple = ImplicitResolution(lambda instance, name:
                                           Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'brain')
 repeat = Repeat(resolve=lambda self, *args, **kwargs: self.t)
+# TODO: Fix multiple_assembly_repeat (Eyal/Ido?)
 multiple_assembly_repeat = Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
+multiple_assembly_repeat = lambda x: x
 
 
 # TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
 
+@Recordable(('merge', True), 'associate',
+            resolution=ImplicitResolution(
+                lambda instance, name: Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'recording'))
 class AssemblyTuple(object):
     """
     Helper class for syntactic sugar, such as >> (merge)
@@ -33,10 +38,18 @@ class AssemblyTuple(object):
     def __add__(self, other: AssemblyTuple):
         """Add two assembly tuples"""
         assert isinstance(other, AssemblyTuple), "Assemblies can be concatenated only to assemblies"
-        return Assembly.AssemblyTuple(self.assemblies + other.assemblies)
+        return AssemblyTuple(*(self.assemblies + other.assemblies))
 
     @bound_assembly_tuple
-    def __rshift__(self, other: Area, *, brain: Brain):
+    def merge(self, area: Area, *, brain: Brain = None):
+        return Assembly._merge(self.assemblies, area, brain=brain)
+
+    @bound_assembly_tuple
+    def associate(self, other: AssemblyTuple, *, brain: Brain = None):
+        # TODO: Yonatan, Fix binding
+        return Assembly._associate(self.assemblies, other.assemblies, brain=brain)
+
+    def __rshift__(self, other: Area):
         """
         in the context of assemblies, >> symbolizes merge.
         Example: (within a brain context) (a1+a2+a3)>>area
@@ -45,13 +58,13 @@ class AssemblyTuple(object):
         :return:
         """
         assert isinstance(other, Area), "Assemblies must be merged onto an area"
-        return Assembly.merge(self.assemblies, other)
+        return self.merge(other)
 
     def __iter__(self):
         return iter(self.assemblies)
 
 
-@Recordable('project', 'reciprocal_project', '_merge', '_associate')
+@Recordable(('project', True), ('reciprocal_project', True))
 @Bindable('brain')
 class Assembly(UniquelyIdentifiable, AssemblyTuple):
     """
@@ -59,6 +72,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     is his parents. we also keep a name for simulation puposes.
     TODO: Rewrite
     """
+    # TODO: Eyal, make this meaningfully uniquely identifiable (generate a hash on initialization and add an optional uid parameter in UniquelyIdentifiable)
 
     def __init__(self, parents: Iterable[Projectable], area: Area, support_size: int, t: int = 1,
                  appears_in: Iterable[BrainRecipe] = None):
@@ -81,7 +95,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         # Probably Dict[Brain, Dict[int, int]]
         self.support: Dict[int, int] = {}
         self.t: int = t
-        self.appears_in: List[BrainRecipe] = list(appears_in or [])
+        self.appears_in: Set[BrainRecipe] = set(appears_in or [])
         for recipe in self.appears_in:
             recipe.append(self)
 
@@ -134,8 +148,10 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         """
         assert isinstance(area, Area), "Project target must be an Area"
         projected_assembly: Assembly = Assembly([self], area, self.support_size, t=self.t, appears_in=self.appears_in)
+        print("Firing", brain)
         if brain is not None:
-            Assembly.fire(brain, {self.area: [area]})
+            pass
+            # Assembly.fire(brain, {self.area: [area]})
             # TODO: Tomer, update
             # projected_assembly.update_support(brain, brain.winners[area])
 
@@ -156,7 +172,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :return: Resulting projected assembly
         """
         projected_assembly: Assembly = self.project(brain, area)
-        Assembly.fire({projected_assembly: area})
+        # Assembly.fire({projected_assembly: area})
         self.update_support(brain, brain.winners[self.area])
         return projected_assembly
 
@@ -173,16 +189,18 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :return: Resulting merged assembly
         """
         assert len(assemblies) != 0, "tried to merge with empty input"
+        print("Merging...", brain)
 
         # TODO: Which support size ot select? Maybe support size should be a global variable?
         # Lets think about this
         merged_assembly: Assembly = Assembly(assemblies, area, assemblies[0].support_size, t=assemblies[0].t,
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
-            Assembly.fire({ass: area for ass in assemblies})
-            merged_assembly.update_support(brain, brain.winners[area])
+            pass
+            # Assembly.fire({ass: area for ass in assemblies})
+            #merged_assembly.update_support(brain, brain.winners[area])
 
-        merged_assembly.bind_like(assemblies)
+        merged_assembly.bind_like(*assemblies)
         return merged_assembly
 
     @staticmethod
@@ -203,10 +221,11 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         #assert 0 not in [len(a), len(b)], "attempted to associate empty list"
         # Yonatan: Let's talk about this but maybe we allow associate also from different areas?
         # looks like a nice feature
-        assert len(set([x.area for x in a + b])) <= 1, "can only associate assemblies in the same area"
+        # assert len(set([x.area for x in a + b])) <= 1, "can only associate assemblies in the same area"
+        print("Associating...", brain)
         pairs = product(a, b)
         for x, y in pairs:
-            Assembly.merge([x, y], x.area)
+            Assembly._merge((x, y), x.area, brain=brain)  # Eyal: You omitted brain, notice that you need to specify it
 
     def __lt__(self, other: 'Assembly'):
         """Checks that other is a child assembly of self"""

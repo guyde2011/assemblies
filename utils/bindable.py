@@ -1,5 +1,6 @@
+from collections import Mapping
 from functools import wraps, cached_property
-from typing import Optional, Any, Tuple, Dict, Set, Generic
+from typing import Optional, Any, Tuple, Dict, Set, Generic, Iterator
 from inspect import Parameter
 
 from utils.class_manipulation import variables
@@ -65,7 +66,7 @@ class Bindable(Generic[T]):
                 setattr(cls, func_name, implicit_resolution(func))
 
         # Update params to include previous bindings
-        params: Tuple[str, ...] = tuple(getattr(cls, '_bindable_params', ()) + params)
+        params: Tuple[str, ...] = tuple(set(getattr(cls, '_bindable_params', ()) + params))
         setattr(cls, '_bindable_params', params)
 
         original_init = getattr(cls, '__init__', lambda self, *args, **kwargs: None)
@@ -96,7 +97,7 @@ class Bindable(Generic[T]):
 
             self._bound_params = getattr(others[0], '_bound_params', {})
             for other in others[1:]:
-                for key, value in getattr(other, '_bound_params', {}):
+                for key, value in getattr(other, 'bound_params', {}).items():
                     if key in self._bound_params and self._bound_params.get(key) != value:
                         self._bound_params.pop(key)
 
@@ -115,12 +116,18 @@ class Bindable(Generic[T]):
 
         @cached_property
         def bound_params(_self):
-            class Proxy:
+            class Proxy(Mapping):
                 def __contains__(self, key: str):
                     return key in getattr(_self, '_bound_params', {})
 
                 def __getitem__(self, key: str):
                     return getattr(_self, '_bound_params', {})[key]
+
+                def __iter__(self):
+                    return iter(getattr(_self, '_bound_params', {}))
+
+                def __len__(self) -> int:
+                    return len(list(iter(self)))
 
             return Proxy()
 

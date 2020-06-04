@@ -29,7 +29,7 @@ class BrainRecipe:
         if assembly not in self.assemblies:
             self.assemblies.append(assembly)
             if self not in assembly.appears_in:
-                assembly.appears_in.append(self)
+                assembly.appears_in.add(self)
 
     def append(self, part: Union[Assembly, BrainPart]):
         if isinstance(part, Area):
