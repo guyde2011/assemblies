@@ -61,6 +61,6 @@ class BrainRecipe:
         current_ctx_stack: Dict[Assembly, Optional[Recording]] = self.ctx_stack.pop()
 
         for assembly in self.assemblies:
-            assembly.unbind('brain')
+            assembly.unbind('recording')
             if assembly in current_ctx_stack:
-                assembly.bind(brain=current_ctx_stack[assembly])
+                assembly.bind(recording=current_ctx_stack[assembly])
