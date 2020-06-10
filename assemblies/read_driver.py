@@ -3,6 +3,7 @@ from pathlib import Path
 import importlib
 import re
 
+from assemblies.assembly_fun import Brain
 
 class ReadDriver:
     def __init__(self, reader_name):
@@ -22,7 +23,7 @@ class ReadDriver:
         self.reader = self.readers[reader_name]
 
     def read(self, brain: Brain):
-        return self.reader.read(assembly, brain= brain)
+        return self.reader.read(brain=brain)
 
     def update_hook(self, brain: Brain):
         if hasattr(self.reader, 'update_hook'):
