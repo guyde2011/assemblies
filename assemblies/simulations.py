@@ -3,6 +3,10 @@ import logging
 from assemblies.assembly_fun import Assembly, NamedStimulus
 from typing import List
 
+"""
+DEPRECATED
+view simulations/basic_assemblies.py instead
+"""
 
 def assemblies_simulation(n=1000000, k=1000, p=0.1, beta=0.05, t=100) -> Brain:
     logging.basicConfig(level=logging.INFO)

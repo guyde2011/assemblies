@@ -23,6 +23,9 @@ multiple_assembly_repeat = lambda x: x
 
 
 # TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
+# fix uniquleyidentifiable
+# use associate
+# write project (assuming read)
 
 @Recordable(('merge', True), 'associate',
             resolution=ImplicitResolution(
@@ -40,11 +43,10 @@ class AssemblyTuple(object):
         assert isinstance(other, AssemblyTuple), "Assemblies can be concatenated only to assemblies"
         return AssemblyTuple(*(self.assemblies + other.assemblies))
 
-    @bound_assembly_tuple
     def merge(self, area: Area, *, brain: Brain = None):
         return Assembly._merge(self.assemblies, area, brain=brain)
 
-    @bound_assembly_tuple
+
     def associate(self, other: AssemblyTuple, *, brain: Brain = None):
         # TODO: Yonatan, Fix binding
         return Assembly._associate(self.assemblies, other.assemblies, brain=brain)
@@ -84,6 +86,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :param reader: Name of a read driver
         """
 
+
+        #TODO: find a way to make equivalent assemblies have same id
         UniquelyIdentifiable.__init__(self)
         AssemblyTuple.__init__(self, self)
 
@@ -125,7 +129,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     def update_hook(self, *, brain: Brain):
         self.reader.update_hook(self, brain)
 
-    @repeat
+
     def project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
         """
         Projects an assembly into an area
@@ -149,7 +153,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         assert isinstance(other, Area), "Assembly must be projected onto an area"
         return self.project(other)
 
-    @repeat
     def reciprocal_project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
         """
         Reciprocally projects an assembly into an area,

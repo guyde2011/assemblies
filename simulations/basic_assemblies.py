@@ -5,8 +5,8 @@ stim = Stimulus(100, 0.05)
 area1 = Area(100)
 area2 = Area(200)
 area3 = Area(300)
-assembly1 = Assembly([stim], area1, 100, t=1)
-assembly2 = Assembly([stim], area2, 100, t=1)
+assembly1 = Assembly([stim], area1, 100)
+assembly2 = Assembly([stim], area2, 100)
 recipe = BrainRecipe(area1, area2, stim, assembly1, assembly2)
 
 with recipe:

@@ -22,7 +22,7 @@ class ReadDriver:
         self.reader = self.readers[reader_name]
 
     def read(self, brain: Brain):
-        return self.reader.read(assembly, brain= brain)
+        return self.reader.read(brain= brain)
 
     def update_hook(self, brain: Brain):
         if hasattr(self.reader, 'update_hook'):
