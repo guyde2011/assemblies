@@ -74,21 +74,22 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     is his parents. we also keep a name for simulation puposes.
     TODO: Rewrite
     """
-    # TODO: Eyal, make this meaningfully uniquely identifiable (generate a hash on initialization and add an optional uid parameter in UniquelyIdentifiable)
 
-    def __init__(self, parents: Iterable[Projectable], area: Area, t: int = 1,
+    def __init__(self, parents: Iterable[Projectable], area: Area,
                  appears_in: Iterable[BrainRecipe] = None, reader: str = 'default'):
         """
         Initialize an assembly
         :param parents: Parents of the assembly (projectables that create it)
         :param area: Area the assembly "lives" in
-        :param t: Number of times to repeat each operation
         :param reader: Name of a read driver
         """
 
-
-        #TODO: find a way to make equivalent assemblies have same id
-        UniquelyIdentifiable.__init__(self)
+        """
+        We hash an assembly using its parents (sorted by id) and area
+        this way equivalent assemblies have the same id.
+        """
+        assembly_dat = (area, *sorted(parents, key=hash))
+        UniquelyIdentifiable.__init__(self, assembly_dat=assembly_dat)
         AssemblyTuple.__init__(self, self)
 
         # Removed name from parameters
@@ -97,7 +98,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         # TODO: Tomer, update to depend on brain as well?
         # Probably Dict[Brain, Dict[int, int]]
         self.reader = ReadDriver(reader)
-        self.t: int = t
         self.appears_in: Set[BrainRecipe] = set(appears_in or [])
         for recipe in self.appears_in:
             recipe.append(self)
