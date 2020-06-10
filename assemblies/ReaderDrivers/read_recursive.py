@@ -1,4 +1,6 @@
-from assemblies.assembly_fun import Projectable, Brain
+from assemblies.assembly_fun import Projectable, Brain, Assembly, Stimulus, Area
+from typing import Iterable, List, Dict
+
 
 class ReadRecursive:
 
