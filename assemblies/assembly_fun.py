@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from .read_driver import ReadDriver
 from brain import Brain
 from utils.blueprints.recordable import Recordable
 from utils.implicit_resolution import ImplicitResolution
@@ -74,14 +74,14 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     """
     # TODO: Eyal, make this meaningfully uniquely identifiable (generate a hash on initialization and add an optional uid parameter in UniquelyIdentifiable)
 
-    def __init__(self, parents: Iterable[Projectable], area: Area, support_size: int, t: int = 1,
-                 appears_in: Iterable[BrainRecipe] = None):
+    def __init__(self, parents: Iterable[Projectable], area: Area, t: int = 1,
+                 appears_in: Iterable[BrainRecipe] = None, reader: str = 'default'):
         """
         Initialize an assembly
         :param parents: Parents of the assembly (projectables that create it)
         :param area: Area the assembly "lives" in
-        :param support_size: TODO: Tomer, fill in?
         :param t: Number of times to repeat each operation
+        :param reader: Name of a read driver
         """
 
         UniquelyIdentifiable.__init__(self)
@@ -90,32 +90,13 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         # Removed name from parameters
         self.parents: Tuple[Projectable, ...] = tuple(parents)
         self.area: Area = area
-        self.support_size: int = support_size
         # TODO: Tomer, update to depend on brain as well?
         # Probably Dict[Brain, Dict[int, int]]
-        self.support: Dict[int, int] = {}
+        self.reader = ReadDriver(reader)
         self.t: int = t
         self.appears_in: Set[BrainRecipe] = set(appears_in or [])
         for recipe in self.appears_in:
             recipe.append(self)
-
-    def _update_support(self, brain: Brain, winners: Iterable[int]):
-        # TODO: Tomer, need to index by brain
-        # Something along the lines of self.supports[brain] = ...
-        # TODO: Tomer, maybe add function for update_hook and then override it from the driver? Seems like the more "clean" way of approaching this
-
-        oldest = 1
-        for neuron in self.support:
-            self.support[neuron] += 1
-            oldest = max(oldest, self.support[neuron])
-        for neuron in winners:
-            self.support[neuron] = 1
-        if len(self.support) <= self.support_size:
-            return
-        for neuron in self.support:
-            if self.support[neuron] < oldest:
-                continue
-            del self.support[neuron]
 
     @staticmethod
     def _fire(mapping: Dict[BrainPart, List[BrainPart]], *, brain: Brain = None):
@@ -138,6 +119,12 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
             for t in mapping[p]:
                 brain.disinhibit(p, t)
 
+    def read(self, *, brain: Brain) -> Tuple[int, ...]:
+        return self.reader.read(self, brain)
+
+    def update_hook(self, *, brain: Brain):
+        self.reader.update_hook(self, brain)
+
     @repeat
     def project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
         """
@@ -147,7 +134,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :return: Resulting projected assembly
         """
         assert isinstance(area, Area), "Project target must be an Area"
-        projected_assembly: Assembly = Assembly([self], area, self.support_size, t=self.t, appears_in=self.appears_in)
+        projected_assembly: Assembly = Assembly([self], area, t=self.t, appears_in=self.appears_in)
         print("Firing", brain)
         if brain is not None:
             pass
@@ -173,7 +160,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         """
         projected_assembly: Assembly = self.project(brain, area)
         # Assembly.fire({projected_assembly: area})
-        self.update_support(brain, brain.winners[self.area])
         return projected_assembly
 
     @staticmethod
@@ -191,9 +177,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         assert len(assemblies) != 0, "tried to merge with empty input"
         print("Merging...", brain)
 
-        # TODO: Which support size ot select? Maybe support size should be a global variable?
         # Lets think about this
-        merged_assembly: Assembly = Assembly(assemblies, area, assemblies[0].support_size, t=assemblies[0].t,
+        merged_assembly: Assembly = Assembly(assemblies, area, t=assemblies[0].t,
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
             pass
