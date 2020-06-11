@@ -66,12 +66,18 @@ class ImplicitResolution(Generic[T]):
                 :param bound_method: Flag indicating whether this should resemble a bound method
                 :return: Partial function with resolved parameters already passed
                 """
-                # We are using wraps to preserve the signature
-                return wraps(function)(partial(function.__get__(instance if bound_method else None, owner),
-                                               **{name: value for name, (found, value) in
-                                                  {param_name: resolve(instance, param_name)
-                                                   for param_name in resolvable_param_names}.items()
-                                                  if found}))
+                _func = partial(function.__get__(instance if bound_method else None, owner),
+                                **{name: value for name, (found, value) in
+                                   {param_name: resolve(instance, param_name)
+                                    for param_name in resolvable_param_names}.items()
+                                   if found})
+
+                # We want to preserve docstring and name, but new signature
+                _sig = signature(_func, use_original=True)
+                func = wraps(function)(_func)
+                func.__signature__ = _sig
+
+                return func
 
             def __get__(self, instance, owner):
                 if instance is not None:

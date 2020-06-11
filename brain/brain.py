@@ -28,25 +28,43 @@ class Brain(UniquelyIdentifiable):
 	
 	"""
 
-	def __init__(self, connectome: Connectome, recipe: BrainRecipe = None):
+	def __init__(self, connectome: Connectome, recipe: BrainRecipe = None, t: int = 1):
 		super(Brain, self).__init__()
+		self.t = t
 		self.recipe = recipe or BrainRecipe()
 		self.connectome: Connectome = connectome
 		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = defaultdict(lambda: set())
 		self.ctx_stack: List[Dict[Union[BrainPart, Assembly], Optional[Brain]]] = []
 
-	def next_round(self):
-		return self.connectome.project(self.active_connectome)
+		for area in self.recipe.areas:
+			self.add_area(area)
+
+		for stimulus in self.recipe.stimuli:
+			self.add_stimulus(stimulus)
+
+	def next_round(self, subconnectome=None, replace=False, iterations=1):
+		if replace or subconnectome is None:
+			_active_connectome = subconnectome or self.active_connectome
+		else:
+			_active_connectome = self.active_connectome.copy()
+			for source, destinations in subconnectome.items():
+				for dest in destinations:
+					_active_connectome[source].add(dest)
+
+		for _ in range(iterations - 1):
+			self.connectome.project(_active_connectome)
+		return self.connectome.project(_active_connectome)
 
 	def add_area(self, area: Area):
 		self.recipe.append(area)
-		return self.connectome.add_area(area)
+		self.connectome.add_area(area)
+		self.enable(area, area)
 
 	def add_stimulus(self, stimulus: Stimulus):
 		self.recipe.append(stimulus)
 		return self.connectome.add_stimulus(stimulus)
 
-	def inhibit(self, source: BrainPart, dest: BrainPart = None):
+	def enable(self, source: BrainPart, dest: BrainPart = None):
 		"""
 		Inhibit connection between two brain parts (i.e. activate it).
 		If dest is None then all connections from the source are inhibited.
@@ -57,9 +75,9 @@ class Brain(UniquelyIdentifiable):
 			self.active_connectome[source].add(dest)
 			return
 		for sink in self.connectome.areas + self.connectome.stimuli:
-			self.inhibit(source, sink)
+			self.enable(source, sink)
 
-	def disinhibit(self, source: BrainPart, dest: BrainPart = None):
+	def disable(self, source: BrainPart, dest: BrainPart = None):
 		"""
 		Disinhibit connection between two brain parts (i.e. deactivate it).
 		If dest is None then all connections from the source are disinhibited.
@@ -70,7 +88,7 @@ class Brain(UniquelyIdentifiable):
 			self.active_connectome[source].discard(dest)
 			return
 		for sink in self.connectome.areas:
-			self.disinhibit(source, sink)
+			self.disable(source, sink)
 
 	@cached_property
 	def winners(self):
@@ -111,7 +129,7 @@ class Brain(UniquelyIdentifiable):
 				assembly.bind(brain=current_ctx_stack[assembly])
 
 
-def bake(recipe: BrainRecipe, p: float, connectome_cls):
-	brain = Brain(connectome_cls(p, areas=recipe.areas, stimuli=recipe.stimuli), recipe=recipe)
+def bake(recipe: BrainRecipe, p: float, connectome_cls, t: int = 1):
+	brain = Brain(connectome_cls(p), recipe=recipe, t=t)
 	recipe.initialize(brain)
 	return brain

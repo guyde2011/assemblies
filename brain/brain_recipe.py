@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Union, TYPE_CHECKING, Dict, Optional
+from typing import List, Union, TYPE_CHECKING, Dict, Optional, Set
 
 from assemblies.assembly_fun import Assembly
 from brain.components import Area, Stimulus, BrainPart
@@ -10,26 +10,23 @@ if TYPE_CHECKING:
 
 class BrainRecipe:
     def __init__(self, *parts: Union[BrainPart, Assembly]):
-        self.areas: List[Area] = []
-        self.stimuli: List[Stimulus] = []
-        self.assemblies: List[Assembly] = []
+        self.areas: Set[Area] = set()
+        self.stimuli: Set[Stimulus] = set()
+        self.assemblies: Set[Assembly] = set()
         self.extend(*parts)
         self.initialization: Recording = Recording()
         self.ctx_stack: List[Dict[Assembly, Recording]] = []
 
     def _add_area(self, area: Area):
-        if area not in self.areas:
-            self.areas.append(area)
+        self.areas.add(area)
 
     def _add_stimulus(self, stimulus: Stimulus):
-        if stimulus not in self.stimuli:
-            self.stimuli.append(stimulus)
+        self.stimuli.add(stimulus)
 
     def _add_assembly(self, assembly: Assembly):
-        if assembly not in self.assemblies:
-            self.assemblies.append(assembly)
-            if self not in assembly.appears_in:
-                assembly.appears_in.add(self)
+        self.assemblies.add(assembly)
+        if self not in assembly.appears_in:
+            assembly.appears_in.add(self)
 
     def append(self, part: Union[Assembly, BrainPart]):
         if isinstance(part, Area):

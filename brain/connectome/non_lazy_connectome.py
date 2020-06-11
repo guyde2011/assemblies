@@ -97,7 +97,7 @@ class NonLazyConnectome(Connectome):
 
                     for j in source_neurons:
                         self.connections[source, area][j][i] *= (1 + beta)
-                print(f'connection {source}-{area} now looks like: {self.connections[source, area]}')
+                # print(f'connection {source}-{area} now looks like: {self.connections[source, area]}')
 
     def project_into(self, area: Area, sources: List[BrainPart]) -> List[int]:
         """Project multiple stimuli and area assemblies into area 'area' at the same time.
@@ -127,7 +127,7 @@ class NonLazyConnectome(Connectome):
                 for stim in src_stimuli
             ])
 
-        print(f'prev_winner_inputs: {prev_winner_inputs}')
+        # print(f'prev_winner_inputs: {prev_winner_inputs}')
         return heapq.nlargest(area.k, list(range(len(prev_winner_inputs))), prev_winner_inputs.__getitem__)
 
     def project(self, connections: Dict[BrainPart, Iterable[Area]]):
@@ -147,7 +147,7 @@ class NonLazyConnectome(Connectome):
         new_winners: Dict[Area, List[int]] = dict()
         for area in to_update:
             new_winners[area] = self.project_into(area, sources_mapping[area])
-            print(f'new winners of {area}: {new_winners[area]}')
+            # print(f'new winners of {area}: {new_winners[area]}')
 
         self.update_connectomes(new_winners, sources_mapping)
 

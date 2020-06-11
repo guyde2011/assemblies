@@ -1,209 +1,203 @@
-from functools import wraps
-from inspect import Parameter
+from __future__ import annotations
+from .read_driver import ReadDriver
+from brain import Brain
+from utils.blueprints.recordable import Recordable
+from utils.implicit_resolution import ImplicitResolution
+from utils.bindable import Bindable
+from utils.repeat import Repeat
+from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
+from typing import Iterable, Union, Tuple, List, Dict, TYPE_CHECKING, Set
+from itertools import product
 
-from assemblies.argument_manipulation import argument_restrict, argument_extend
-from brain import *
-from typing import Iterable, Union, Optional
-from copy import deepcopy
+if TYPE_CHECKING:
+    from brain.brain_recipe import BrainRecipe
+
+Projectable = Union['Assembly', Stimulus]
+
+bound_assembly_tuple = ImplicitResolution(lambda instance, name:
+                                          Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'brain')
+repeat = Repeat(resolve=lambda self, *args, **kwargs: self.t)
 
 
+# TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
 
-Projectable = Union['Assembly', 'NamedStimulus']
+# write project (assuming read)
 
-
-class NamedStimulus(object):    # hi
-    """ 
-    acts as a buffer between our implementation and brain.py, as the relevant
-    functions there use naming to differentiate between areas
+@Recordable(('merge', True), 'associate',
+            resolution=ImplicitResolution(
+                lambda instance, name: Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'recording'))
+class AssemblyTuple(object):
     """
-    def __init__(self, name, stimulus):
-        self.name = name
-        self.stimulus = stimulus
-
-    def __repr__(self) -> str:
-        return f"Stimulus({self.name})"
-
-
-def repeat(func):
+    Helper class for syntactic sugar, such as >> (merge)
     """
-    Decorator for repeating a function
-    t can be either the object default (self.t),
-    or specified in execution (t should not be a parameter of the decorated function)
-    """
-    restricted_func = argument_restrict(func)
 
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        print(kwargs)
-        t = kwargs.get('t', self.t)
+    def __init__(self, *assemblies: Assembly):
+        self.assemblies: Tuple[Assembly, ...] = assemblies
 
-        for _ in range(t):
-            restricted_func(self, *args, **kwargs)
+    def __add__(self, other: AssemblyTuple):
+        """Add two assembly tuples"""
+        assert isinstance(other, AssemblyTuple), "Assemblies can be concatenated only to assemblies"
+        return AssemblyTuple(*(self.assemblies + other.assemblies))
 
-    return argument_extend(Parameter('t', Parameter.KEYWORD_ONLY, default=None, annotation=int),
-                           restrict=False)(wrapper)
+    @bound_assembly_tuple
+    def merge(self, area: Area, *, brain: Brain = None):
+        return Assembly._merge(self.assemblies, area, brain=brain)
+
+    @bound_assembly_tuple
+    def associate(self, other: AssemblyTuple, *, brain: Brain = None):
+        # TODO: Yonatan, Fix binding
+        return Assembly._associate(self.assemblies, other.assemblies, brain=brain)
+
+    def __rshift__(self, other: Area):
+        """
+        in the context of assemblies, >> symbolizes merge.
+        Example: (within a brain context) (a1+a2+a3)>>area
+        :param other:
+        :param brain:
+        :return:
+        """
+        assert isinstance(other, Area), "Assemblies must be merged onto an area"
+        return self.merge(other)
+
+    def __iter__(self):
+        return iter(self.assemblies)
 
 
-class Assembly(object):
+@Recordable(('project', True), ('reciprocal_project', True))
+@Bindable('brain')
+class Assembly(UniquelyIdentifiable, AssemblyTuple):
     """
     the main assembly object. according to our implementation, the main data of an assembly
     is his parents. we also keep a name for simulation puposes.
+    TODO: Rewrite
     """
 
-    def __init__(self, parents: Iterable[Projectable], area_name: str, name: str, support_size: int, t: int = 1):
-        self.parents: List[Projectable] = list(parents)
-        self.area_name: str = area_name
-        self.name: str = name
-        self.support_size: int = support_size
-        self.support: Dict[int, int] = {}
-
+    def __init__(self, parents: Iterable[Projectable], area: Area,
+                 appears_in: Iterable[BrainRecipe] = None, reader: str = 'default'):
         """
-        set default repeat amount (how many times to repeat each function) for
-        this assembly object.
-        """
-        self.t = t
-
-    def __repr__(self) -> str:
-        return self.name
-
-    def __hash__(self) -> int:
-        return hash(self.name)
-
-    @staticmethod
-    def fire_many(brain: Brain, projectables: Iterable[Projectable], area_name: str):
-        """
-        params:
-        -the relevant brain object, as project is dependent on the brain instance.
-        -a list of object which are projectable (Stimuli, Areas...) which will be projected
-        -the target area's name.
-
-        This function works by creating a "Parent tree", (Which is actually a directed acyclic graph) first,
-        and then by going from the top layer, which will consist of stimuli, and traversing down the tree
-        while firing each layer to areas its relevant descendant inhibit.
-
-        For example, "firing" an assembly, we will first climb up its parent tree (Assemblies of course may have
-        multiple parents, such as results of merge. Then we iterate over the resulting list in reverse, while firing
-        each layer to the relevant areas, which are saved in a dictionary format:
-        The thing we will project: areas to project it to
+        Initialize an assembly
+        :param parents: Parents of the assembly (projectables that create it)
+        :param area: Area the assembly "lives" in
+        :param reader: Name of a read driver
         """
 
-        layers: List[Dict[Projectable, List[str]]] = [{stuff: [area_name] for stuff in projectables}]
-        while any(isinstance(ass, Assembly) for ass in layers[-1]):
-            prev_layer: Iterable[Assembly] = (ass for ass in layers[-1].keys() if not isinstance(ass, NamedStimulus))
-            current_layer: Dict[Projectable, List[str]] = {}
-            for ass in prev_layer:
-                for parent in ass.parents:
-                    current_layer[parent] = current_layer.get(ass, []) + [ass.area_name]
+        # We hash an assembly using its parents (sorted by id) and area
+        # this way equivalent assemblies have the same id.
+        assembly_dat = (area, *sorted(parents, key=hash))
+        UniquelyIdentifiable.__init__(self, assembly_dat=assembly_dat)
+        AssemblyTuple.__init__(self, self)
 
-            layers.append(current_layer)
+        self.parents: Tuple[Projectable, ...] = tuple(parents)
+        self.area: Area = area
+        # TODO: Tomer, update to depend on brain as well?
+        # Probably Dict[Brain, Dict[int, int]]
+        self.reader = ReadDriver(reader)
+        self.appears_in: Set[BrainRecipe] = set(appears_in or [])
+        for recipe in self.appears_in:
+            recipe.append(self)
 
-        layers = layers[::-1]
-        for layer in layers:
-            stimuli_mappings: Dict[str, List[str]] = {stim.name: areas
-                                                      for stim, areas in
-                                                      layer.items() if isinstance(stim, NamedStimulus)}
+    def read(self, *, brain: Brain) -> Tuple[int, ...]:
+        return self.reader.read(self, brain)
 
-            area_mappings: Dict[str, List[str]] = {}
-            for ass, areas in filter(lambda pair: isinstance(pair[0], Assembly), layer.items()):
-                area_mappings[ass.area_name] = area_mappings.get(ass.area_name, []) + areas
+    def _update_hook(self, *, brain: Brain):
+        self.reader.update_hook(self, brain)
 
-            brain.project(stimuli_mappings, area_mappings)
-            for ass in layer:
-                if isinstance(ass, Assembly):
-                    ass.update_support(brain.areas[ass.area_name].winners)
-
-    def update_support(self, winners):
-        oldest = 1
-        for neuron in self.support:
-            self.support[neuron] += 1
-            oldest = max(oldest, self.support[neuron])
-        for neuron in winners:
-            self.support[neuron] = 1
-        if len(self.support) <= self.support_size:
-            return
-        for neuron in self.support:
-            if self.support[neuron] < oldest:
-                continue
-            del self.support[neuron]
-
-    @repeat
-    def project(self, brain: Brain, area_name: str) -> 'Assembly':
+    def project(self, area: Area, *, brain: Brain = None) -> Assembly:
         """
-        a simple case of project many, with only one projectable parameter
+        Projects an assembly into an area
+        :param brain:
+        :param area:
+        :return: Resulting projected assembly
         """
-        projected_assembly: Assembly = Assembly([self], area_name, f"project({self.name}, {area_name})")
-        Assembly.fire_many(brain, [self], area_name)
-        projected_assembly.update_support(brain.areas[area_name].winners)
+        assert isinstance(area, Area), "Project target must be an Area"
+        projected_assembly: Assembly = Assembly([self], area, appears_in=self.appears_in)
+        print("Firing", brain)
+        if brain is not None:
+            neurons = self.read(brain=brain)
+
+            # LINE FOR AFTER MERGE WITH PERFORMANCE
+            # brain.connectome.winners[self.area] = neurons OR brain.connectome.setwinners(..)
+
+            # CURRENT TEMPORARY BOOTSTRAPPING LINE
+            brain.connectome._winners[self.area] = set(neurons)
+
+            brain.next_round({self.area: [area]}, replace=True, iterations=brain.t)
+
+            # TODO: Tomer, update
+            # projected_assembly._update_hook(brain=brain)
+
+        projected_assembly.bind_like(self)
         return projected_assembly
 
-    @repeat
-    def reciprocal_project(self, brain: Brain, area_name: str) -> 'Assembly':
-        projected_assembly: Assembly = self.project(brain, area_name)
-        Assembly.fire_many(brain, [projected_assembly], self.area_name)
-        self.update_support(brain.areas[self.area_name].winners)
+    def __rshift__(self, other: Area):  # noqa
+        assert isinstance(other, Area), "Assembly must be projected onto an area"
+        return self.project(other)
+
+    def reciprocal_project(self, area: Area, *, brain: Brain = None) -> Assembly:
+        """
+        Reciprocally projects an assembly into an area,
+        creating a projected assembly with strong bi-directional links to the current one
+        :param brain:
+        :param area:
+        :return: Resulting projected assembly
+        """
+        projected_assembly: Assembly = self.project(area, brain=brain)
+        projected_assembly.project(self.area, brain=brain)
+
         return projected_assembly
 
     @staticmethod
-    @repeat
-    def merge(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly', area_name: str) -> 'Assembly':
+    def _merge(assemblies: Tuple[Assembly, ...], area: Area, *, brain: Brain = None) -> Assembly:
         """
-        we create an "artificial" new assembly with x, y as parents, and then project_many
-        to its area. this will create the effect of projecting stimultaneously, as described in the paper.
+        Creates a new assembly with all input assemblies as parents,
+        practically creates a new assembly with one-directional links from parents
+        ONLY CALL AS: Assembly.merge(...), as the function is invariant under input order.
+        :param brain:
+        :param assemblies:
+        :param area:
+        :return: Resulting merged assembly
         """
-        assert(assembly1.area_name != assembly2.area_name, "Areas are the same")
-        merged_assembly: Assembly = Assembly([assembly1, assembly2], area_name,
-                                             f"merge({assembly1.name}, {assembly2.name}, {area_name})")
-        # TODO: Decide one of the two - Consult Edo Arad
-        Assembly.fire_many(brain, [assembly1, assembly2], area_name)
-        merged_assembly.update_support(brain.areas[area_name].winners)
-        # OR: Assembly.fire_many(assembly1.brain, assembly1.parents + assembly2.parents)
+        assert len(assemblies) != 0, "tried to merge with empty input"
+        print("Merging...", brain)
+
+        # Lets think about this
+        merged_assembly: Assembly = Assembly(assemblies, area,
+                                             appears_in=set.intersection(*[x.appears_in for x in assemblies]))
+        if brain is not None:
+            pass
+            # Assembly.fire({ass: area for ass in assemblies})
+            # merged_assembly.update_support(brain, brain.winners[area])
+
+        merged_assembly.bind_like(*assemblies)
         return merged_assembly
 
-
     @staticmethod
-    @repeat
-    def associate(brain: Brain, assembly1: 'Assembly', assembly2: 'Assembly'):
-        assert (assembly1.area_name == assembly2.area_name, "Areas are not the same")
-        Assembly.merge(brain, assembly1, assembly2, assembly1.area_name)
-
-    @staticmethod
-    def get_reads(brain: Brain, possible_assemblies: Iterable['Assembly'], area_name: str) -> Dict['Assembly', float]:
+    def _associate(a: Tuple[Assembly, ...], b: Tuple[Assembly, ...], *, brain: Brain = None) -> None:
         """
-        simulate the calculus up to a certain point on a copy of the original brain, and return the correlation
-        of the parameters of the neurons after the effects of project with those of the original neurons.
-        the purpose is to check how quickly an assembly stabilizes.
-        ranks the list of assemblies with their correlations after the simulation.
+        Associates two lists of assemblies, by strengthening each bond in the
+        corresponding bipartite graph.
+        for simple binary operation use Assembly.associate([a],[b]).
+        for each x in A, y in B, associate (x,y).
+        A1 z-z B1
+        A2 -X- B2
+        A3 z-z B3
+        :param a: first list
+        :param b: second list
         """
-        original_area: Area = brain.areas[area_name]
-        brain_copy: Brain = deepcopy(brain)
-        brain_copy.disinhibit()  # TODO: Implement (Shani's & Adi Dinerstein's groups)
+        # Yonatan: It is OK to associate empty lists?
+        # assert 0 not in [len(a), len(b)], "attempted to associate empty list"
+        # Yonatan: Let's talk about this but maybe we allow associate also from different areas?
+        # looks like a nice feature
+        # assert len(set([x.area for x in a + b])) <= 1, "can only associate assemblies in the same area"
+        print("Associating...", brain)
+        pairs = product(a, b)
+        for x, y in pairs:
+            Assembly._merge((x, y), x.area, brain=brain)  # Eyal: You omitted brain, notice that you need to specify it
 
-        assembly_reads: Dict['Assembly', float] = {}
+    def __lt__(self, other: Assembly):
+        """Checks that other is a child assembly of self"""
+        return isinstance(other, Assembly) and other in self.parents
 
-        for ass in possible_assemblies:
-            if ass.area_name != area_name:
-                continue
-
-            Assembly.fire_many(brain_copy, ass.parents, area_name)
-            simulated_area = brain_copy.areas[area_name]
-            simulated_ass_neurons = simulated_area.winners
-            original_neurons = original_area.winners
-            # TODO: Review scoring method, because assembly may "rotate"
-            assembly_reads[ass] = len(set(simulated_ass_neurons).intersection(original_neurons)) / len(original_neurons)
-
-        return assembly_reads
-
-    @staticmethod
-    def read(brain: Brain, possible_assemblies: Iterable['Assembly'], area_name: str) -> Optional['Assembly']:
-        """
-        simply return the most "stabilized" assembly, meaning the one with highest correlation.
-        """
-        """
-        Previous code:
-        return max(Assembly.get_reads(brain, possible_assemblies, area_name))
-        """
-        area = brain.areas[area_name]
-        for assembly in possible_assemblies:
-            if area.winners.issubset(assembly.support):
-                return assembly
-        return None
+    def __gt__(self, other: Assembly):
+        """Checks if self is a child assembly of other"""
+        return isinstance(other, Assembly) and self in other.parents
