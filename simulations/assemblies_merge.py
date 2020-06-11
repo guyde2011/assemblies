@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 Parameter Selection
 """
 # Number of samples per graph point
-AVERAGING_SIZE = 5
+AVERAGING_SIZE = 25
 # Size of Stimulus
 STIMULUS_SIZE = 100
 # Size of areas
@@ -21,9 +21,15 @@ AREA_SIZE = 1000
 # REPEATS = (1, 10, 25, 50, 100, 250)
 # MERGE_STABILIZATIONS = (0, 1, 2, 3, 10, 25)
 # REPEATS = (1, 5, 10, 25)
-MERGE_STABILIZATIONS = (10, )
-REPEATS = (1, 3, 5, 10, 25)
-PROJECTION_ITERATIONS = 100
+TESTS = (
+    (1, (1, 3, 5, 10, 25, 100, 250)),
+    (3, (1, 3, 5, 10, 25, 100)),
+    (5, (1, 3, 5, 10, 25, 100)),
+    (10, (1, 3, 5, 10, 25, 100)),
+    (25, (1, 3, 5, 10, 25, 50)),
+    (50, (1, 3, 5, 10, 25, 50)),
+    (100, (1, 3, 5, 10, 25)),
+)
 
 # Protect RAM from program using up all memory
 # Allows program to use only half of free memory
@@ -44,7 +50,7 @@ assembly1 = Assembly([stimulus], area1)
 assembly2 = Assembly([stimulus], area2)
 
 begin_time = time.time()
-for merge_stabilization in MERGE_STABILIZATIONS:
+for merge_stabilization, repeats in TESTS:
     recipe = BrainRecipe(area1, area2, area3, area4, stimulus, assembly1, assembly2)
     # Define assembly out of recipe,
     # that way merge can done manually!
@@ -61,7 +67,7 @@ for merge_stabilization in MERGE_STABILIZATIONS:
 
     # Dictionary for storing results
     overlap_per_repeat = {}
-    for t in REPEATS:
+    for t in repeats:
         print(f"Beginning simulation with merge_stabilization={merge_stabilization}, t={t}:")
 
         # Averaging loop
