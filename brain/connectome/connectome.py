@@ -29,7 +29,7 @@ class MappingProxy(Mapping[K_co, V_contra]):
     def __getitem__(self, key: K_co) -> Optional[V_contra]:
         return self._mapping[key]
 
-    def get(self, key: K_co, *, default: Optional[V_contra]=None):
+    def get(self, key: K_co, *, default: Optional[V_contra] = None):
         return self[key] if key in self._mapping else default
 
     def __len__(self) -> int:

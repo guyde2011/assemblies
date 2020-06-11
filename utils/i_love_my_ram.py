@@ -1,7 +1,8 @@
 import resource
 
 
-def get_free_memory():
+def get_free_memory() -> int:
+    """Return amount of free memory, kilobytes"""
     with open('/proc/meminfo', 'r') as mem:
         free_memory = 0
         for i in mem:
@@ -12,5 +13,6 @@ def get_free_memory():
 
 
 def protec_ram(pctg: float = 0.5):
+    """Limit RAM usage to at most some percentage of available RAM"""
     soft, hard = resource.getrlimit(resource.RLIMIT_AS)
     resource.setrlimit(resource.RLIMIT_AS, (int(get_free_memory() * 1024 * pctg), hard))

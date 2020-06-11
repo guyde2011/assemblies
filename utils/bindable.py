@@ -30,12 +30,25 @@ class Bindable(Generic[T]):
 
     @staticmethod
     def implicitly_resolve(instance: T, param_name: str) -> Tuple[bool, Optional[Any]]:
+        """
+        Attempt implicitly resolving a parameter, by checking if it was bound
+        :param instance:
+        :param param_name:
+        :return:
+        """
         _bound_params: Dict[str, Any] = getattr(instance, '_bound_params', {})
         return param_name in _bound_params, _bound_params.get(param_name, None)
 
     @staticmethod
     def implicitly_resolve_many(instances: Tuple[T], param_name: str, graceful: bool = True)\
             -> Tuple[bool, Optional[Any]]:
+        """
+        Attempt implicitly resolving many parameters, by checking if they all share a common bound value
+        :param instances:
+        :param param_name:
+        :param graceful: Flag stating whether to throw an exception or to gracefully return nothing
+        :return:
+        """
         _options: Tuple[Tuple[bool, Optional[Any]], ...] = tuple(Bindable.implicitly_resolve(instance, param_name)
                                                                  for instance in instances)
         options: Set[Any] = set(implicit_value for found, implicit_value in _options if found)

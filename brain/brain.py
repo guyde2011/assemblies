@@ -129,7 +129,8 @@ class Brain(UniquelyIdentifiable):
 				assembly.bind(brain=current_ctx_stack[assembly])
 
 
-def bake(recipe: BrainRecipe, p: float, connectome_cls, repeat: int = 1):
-	brain = Brain(connectome_cls(p), recipe=recipe, repeat=repeat)
+def bake(recipe: BrainRecipe, p: float, connectome_cls, train_repeat: int, effective_repeat: int = 1):
+	brain = Brain(connectome_cls(p), recipe=recipe, repeat=train_repeat)
 	recipe.initialize(brain)
+	brain.repeat = effective_repeat
 	return brain

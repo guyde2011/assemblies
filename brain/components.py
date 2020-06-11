@@ -11,8 +11,6 @@ from utils.bindable import Bindable, bindable_property
 
 
 class UniquelyIdentifiable:
-    hist = {}
-
     def __init__(self, uid=None):
         self._uid: UUID = uid or uuid.uuid4()
 

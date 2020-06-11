@@ -34,6 +34,7 @@ def argument_extend(*params: Parameter, restrict: bool = True):
 
 
 def argument_explicit_restrict(*params: str):
+    """Removes arguments from function signature"""
     def decorate(func):
         sig = signature(func)
         new_params = list(param for name, param in sig.parameters.items() if name not in params)

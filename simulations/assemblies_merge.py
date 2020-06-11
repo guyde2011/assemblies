@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 Parameter Selection
 """
 # Number of samples per graph point
-AVERAGING_SIZE = 25
+AVERAGING_SIZE = 5
 # Size of Stimulus
 STIMULUS_SIZE = 100
 # Size of areas
@@ -19,8 +19,10 @@ AREA_SIZE = 1000
 
 # MERGE_STABILIZATIONS = (0, 1, 2, 3)
 # REPEATS = (1, 10, 25, 50, 100, 250)
-MERGE_STABILIZATIONS = (0, 1, 2, 3, 10, 25, 50, 100)
-REPEATS = (1, 10, 25, 100)
+# MERGE_STABILIZATIONS = (0, 1, 2, 3, 10, 25)
+# REPEATS = (1, 5, 10, 25)
+MERGE_STABILIZATIONS = (10, )
+REPEATS = (1, 3, 5, 10, 25)
 PROJECTION_ITERATIONS = 100
 
 # Protect RAM from program using up all memory
@@ -54,6 +56,9 @@ for merge_stabilization in MERGE_STABILIZATIONS:
             assembly1 >> area3
             assembly2 >> area3
 
+        # Stabilize connections between Assembly 3 and Area 4
+        assembly3.project(area4)
+
     # Dictionary for storing results
     overlap_per_repeat = {}
     for t in REPEATS:
@@ -63,20 +68,17 @@ for merge_stabilization in MERGE_STABILIZATIONS:
         values = []
         for _ in range(AVERAGING_SIZE):
             # Create brain from recipe
-            with bake(recipe, 0.1, NonLazyConnectome, repeat=t) as brain:
+            with bake(recipe, 0.1, NonLazyConnectome, train_repeat=t, effective_repeat=3) as brain:
                 def overlap(A, B):
                     assert len(A) == len(B)
                     return len(set(A).intersection(set(B))) / len(A)
 
-                # Stabilize connections between Assembly 3 and Area 4
-                assembly3.project(area4, iterations=PROJECTION_ITERATIONS)
-
                 # Project assembly for the first time
-                assembly3.project(area4, iterations=1)
+                assembly3 >> area4
                 # Store winners
                 first_winners = area4.winners
                 # Project assembly for the second time
-                assembly3.project(area4, iterations=1)
+                assembly3 >> area4
                 # Store winners
                 second_winners = area4.winners
 

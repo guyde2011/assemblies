@@ -20,8 +20,6 @@ bound_assembly_tuple = ImplicitResolution(lambda instance, name:
 
 # TODO: Eyal, add more syntactic sugar
 
-# write project (assuming read)
-
 @Recordable(('merge', True), 'associate',
             resolution=ImplicitResolution(
                 lambda instance, name: Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'recording'))
@@ -193,11 +191,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :param a: first list
         :param b: second list
         """
-        # Yonatan: It is OK to associate empty lists?
-        # assert 0 not in [len(a), len(b)], "attempted to associate empty list"
-        # Yonatan: Let's talk about this but maybe we allow associate also from different areas?
-        # looks like a nice feature
-        # assert len(set([x.area for x in a + b])) <= 1, "can only associate assemblies in the same area"
         pairs = product(a, b)
         for x, y in pairs:
             Assembly._merge((x, y), x.area, brain=brain)  # Eyal: You omitted brain, notice that you need to specify it

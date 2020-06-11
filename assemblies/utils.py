@@ -21,6 +21,7 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area):
     The thing we will project: areas to project it to
     """
 
+    # TODO: Add inline documentation
     layers: List[Dict[Projectable, List[Area]]] = [{projectable: [area] for projectable in projectables}]
     while any(isinstance(projectable, Assembly) for projectable in layers[-1]):
         prev_layer: Iterable[Assembly] = (ass for ass in layers[-1].keys() if not isinstance(ass, Stimulus))

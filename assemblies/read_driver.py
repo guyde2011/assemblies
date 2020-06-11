@@ -3,16 +3,19 @@ from pathlib import Path
 import importlib
 import re
 
-from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
 from brain import Brain
+
+
+# TODO: Add documentation!
 
 
 class ReadDriver:
     def __init__(self, reader_name):
         self.readers = {}
-        assemblies = Path(__file__).parent.absolute()  # path to assemblies
-        readers = assemblies / 'assembly_readers'
-        sys.path.insert(0, str(assemblies))
+        # Path to assemblies package
+        assemblies_package_path = Path(__file__).parent.absolute()
+        readers = assemblies_package_path / 'assembly_readers'
+        sys.path.insert(0, str(assemblies_package_path))
         for path in readers.iterdir():
             if not (path.is_file() and path.suffix == '.py'):
                 continue
