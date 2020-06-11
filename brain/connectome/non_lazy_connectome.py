@@ -1,3 +1,4 @@
+import gc
 import logging
 import heapq
 
@@ -36,6 +37,16 @@ class NonLazyConnectome(Connectome):
 
         if initialize:
             self._initialize_parts((areas or []) + (stimuli or []))
+
+    def free_memory(self):
+        for _, v in self.connections.items():
+            if callable(getattr(v.synapses, 'clear', None)):
+                v.synapses.clear()
+            elif callable(getattr(v.synapses, 'delete', None)):
+                v.synapses.delete()
+
+        self.connections.clear()
+        gc.collect()
 
     def add_area(self, area: Area):
         super().add_area(area)

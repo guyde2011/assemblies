@@ -28,9 +28,9 @@ class Brain(UniquelyIdentifiable):
 	
 	"""
 
-	def __init__(self, connectome: Connectome, recipe: BrainRecipe = None, t: int = 1):
+	def __init__(self, connectome: Connectome, recipe: BrainRecipe = None, repeat: int = 1):
 		super(Brain, self).__init__()
-		self.t = t
+		self.repeat = repeat
 		self.recipe = recipe or BrainRecipe()
 		self.connectome: Connectome = connectome
 		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = defaultdict(lambda: set())
@@ -129,7 +129,7 @@ class Brain(UniquelyIdentifiable):
 				assembly.bind(brain=current_ctx_stack[assembly])
 
 
-def bake(recipe: BrainRecipe, p: float, connectome_cls, t: int = 1):
-	brain = Brain(connectome_cls(p), recipe=recipe, t=t)
+def bake(recipe: BrainRecipe, p: float, connectome_cls, repeat: int = 1):
+	brain = Brain(connectome_cls(p), recipe=recipe, repeat=repeat)
 	recipe.initialize(brain)
 	return brain

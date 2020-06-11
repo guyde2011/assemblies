@@ -67,6 +67,9 @@ class Connectome(metaclass=ABCMeta):
         if stimuli:
             self.stimuli = stimuli
 
+    def free_memory(self):
+        pass
+
     def add_area(self, area: Area):
         self.areas.append(area)
 

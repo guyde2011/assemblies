@@ -4,9 +4,8 @@ from brain import Brain
 from utils.blueprints.recordable import Recordable
 from utils.implicit_resolution import ImplicitResolution
 from utils.bindable import Bindable
-from utils.repeat import Repeat
-from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
-from typing import Iterable, Union, Tuple, List, Dict, TYPE_CHECKING, Set
+from brain.components import Stimulus, Area, UniquelyIdentifiable
+from typing import Iterable, Union, Tuple, TYPE_CHECKING, Set, Optional
 from itertools import product
 
 if TYPE_CHECKING:
@@ -14,12 +13,12 @@ if TYPE_CHECKING:
 
 Projectable = Union['Assembly', Stimulus]
 
+# TODO: Look at parameters as well? (Yonatan, for associate)
 bound_assembly_tuple = ImplicitResolution(lambda instance, name:
                                           Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'brain')
-repeat = Repeat(resolve=lambda self, *args, **kwargs: self.t)
 
 
-# TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
+# TODO: Eyal, add more syntactic sugar
 
 # write project (assuming read)
 
@@ -51,7 +50,6 @@ class AssemblyTuple(object):
 
     @bound_assembly_tuple
     def associate(self, other: AssemblyTuple, *, brain: Brain = None):
-        # TODO: Yonatan, Fix binding
         return Assembly._associate(self.assemblies, other.assemblies, brain=brain)
 
     def __rshift__(self, other: Area):
@@ -88,8 +86,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
                  appears_in: Iterable[BrainRecipe] = None, reader: str = 'default'):
         # We hash an assembly using its parents (sorted by id) and area
         # this way equivalent assemblies have the same id.
-        assembly_dat = (area, *sorted(parents, key=hash))
-        UniquelyIdentifiable.__init__(self, assembly_dat=assembly_dat)
+        UniquelyIdentifiable.__init__(self, uid=hash((area, *sorted(parents, key=hash))))
         AssemblyTuple.__init__(self, self)
 
         self.parents: Tuple[Projectable, ...] = tuple(parents)
@@ -103,9 +100,11 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         return self.reader.read(self, brain)
 
     def _update_hook(self, *, brain: Brain):
-        self.reader.update_hook(self, brain)
+        # TODO: Tomer, fix
+        # self.reader.update_hook(self, brain)
+        pass
 
-    def project(self, area: Area, *, brain: Brain = None) -> Assembly:
+    def project(self, area: Area, *, brain: Brain = None, iterations: Optional[int] = None) -> Assembly:
         """
         Projects an assembly into an area
         :param brain: the brain in which the projection happens
@@ -114,21 +113,19 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         """
         assert isinstance(area, Area), "Project target must be an Area"
         projected_assembly: Assembly = Assembly([self], area, appears_in=self.appears_in)
-        print("Firing", brain)
         if brain is not None:
             neurons = self.read(brain=brain)
 
+            # TODO: Eyal see my update to line after merge
             # LINE FOR AFTER MERGE WITH PERFORMANCE
-            # brain.connectome.winners[self.area] = neurons OR brain.connectome.setwinners(..)
+            # brain.connectome.winners[self.area] = neurons
 
             # CURRENT TEMPORARY BOOTSTRAPPING LINE
             brain.connectome._winners[self.area] = set(neurons)
 
-            # this improves performance
-            brain.next_round({self.area: [area]}, replace=True, iterations=brain.t)
+            brain.next_round({self.area: [area]}, replace=True, iterations=iterations or brain.repeat)
 
-            # TODO: Tomer, update
-            # projected_assembly._update_hook(brain=brain)
+            projected_assembly._update_hook(brain=brain)
 
         projected_assembly.bind_like(self)
         return projected_assembly
@@ -153,6 +150,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         """
         projected_assembly: Assembly = self.project(area, brain=brain)
         projected_assembly.project(self.area, brain=brain)
+        self._update_hook(brain=brain)
 
         return projected_assembly
 
@@ -168,15 +166,15 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :returns: resulting merged assembly
         """
         assert len(assemblies) != 0, "tried to merge with empty input"
-        print("Merging...", brain)
 
         # Lets think about this
         merged_assembly: Assembly = Assembly(assemblies, area,
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
+            # TODO: Eyal, do merge
             pass
             # Assembly.fire({ass: area for ass in assemblies})
-            # merged_assembly.update_support(brain, brain.winners[area])
+            merged_assembly._update_hook(brain=brain)
 
         merged_assembly.bind_like(*assemblies)
         return merged_assembly
@@ -193,14 +191,12 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         A3 z-z B3
         :param a: first list
         :param b: second list
-
         """
         # Yonatan: It is OK to associate empty lists?
         # assert 0 not in [len(a), len(b)], "attempted to associate empty list"
         # Yonatan: Let's talk about this but maybe we allow associate also from different areas?
         # looks like a nice feature
         # assert len(set([x.area for x in a + b])) <= 1, "can only associate assemblies in the same area"
-        print("Associating...", brain)
         pairs = product(a, b)
         for x, y in pairs:
             Assembly._merge((x, y), x.area, brain=brain)  # Eyal: You omitted brain, notice that you need to specify it

@@ -95,7 +95,7 @@ class Bindable(Generic[T]):
                 self._bound_params = {}
                 return
 
-            self._bound_params = getattr(others[0], '_bound_params', {})
+            self._bound_params = getattr(others[0], '_bound_params', {}).copy()
             for other in others[1:]:
                 for key, value in getattr(other, 'bound_params', {}).items():
                     if key in self._bound_params and self._bound_params.get(key) != value:

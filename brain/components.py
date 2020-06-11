@@ -13,12 +13,8 @@ from utils.bindable import Bindable, bindable_property
 class UniquelyIdentifiable:
     hist = {}
 
-    def __init__(self, assembly_dat=None):
-        self._uid: UUID = uuid.uuid4()
-        if assembly_dat is not None and assembly_dat in UniquelyIdentifiable.hist:
-            self._uid = UniquelyIdentifiable.hist[assembly_dat]
-        elif assembly_dat is not None:
-            UniquelyIdentifiable.hist[assembly_dat] = self._uid
+    def __init__(self, uid=None):
+        self._uid: UUID = uid or uuid.uuid4()
 
     def __hash__(self):
         return hash(self._uid)
@@ -51,7 +47,7 @@ class Area(UniquelyIdentifiable):
 
 
 class Stimulus(UniquelyIdentifiable):
-    def __init__(self, n: int, beta: float):
+    def __init__(self, n: int, beta: float = 0.05):
         super(Stimulus, self).__init__()
         self.n = n
         self.beta = beta
