@@ -23,8 +23,8 @@ class ReadDriver:
                 self.readers[val.__dict__['name']] = val
         self.reader = self.readers[reader_name]
 
-    def read(self, brain: Brain):
-        return self.reader.read(brain=brain)
+    def read(self, assembly, brain: Brain):
+        return self.reader.read(assembly, brain=brain)
 
     def update_hook(self, brain: Brain):
         if hasattr(self.reader, 'update_hook'):

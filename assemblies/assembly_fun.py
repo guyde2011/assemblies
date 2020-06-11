@@ -42,9 +42,11 @@ class AssemblyTuple(object):
         assert isinstance(other, AssemblyTuple), "Assemblies can be concatenated only to assemblies"
         return AssemblyTuple(*(self.assemblies + other.assemblies))
 
+    @bound_assembly_tuple
     def merge(self, area: Area, *, brain: Brain = None):
         return Assembly._merge(self.assemblies, area, brain=brain)
 
+    @bound_assembly_tuple
     def associate(self, other: AssemblyTuple, *, brain: Brain = None):
         # TODO: Yonatan, Fix binding
         return Assembly._associate(self.assemblies, other.assemblies, brain=brain)
@@ -138,7 +140,18 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         projected_assembly: Assembly = Assembly([self], area, appears_in=self.appears_in)
         print("Firing", brain)
         if brain is not None:
-            pass
+            neurons = self.read(brain=brain)
+
+            #LINE FOR AFTER MERGE WITH PERFORMANCE
+            #brain.connectome.winners[self.area] = neurons OR brain.connectome.setwinners(..)
+
+
+            #CURRENT TEMPORARY BOOTSTRAPPING LINE
+            brain.connectome._winners[self.area] = set(neurons)
+
+            for _ in range(brain.t):
+                brain.connectome.project({self.area: [area]})
+
             # Assembly.fire(brain, {self.area: [area]})
             # TODO: Tomer, update
             # projected_assembly.update_support(brain, brain.winners[area])

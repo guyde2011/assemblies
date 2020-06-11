@@ -65,12 +65,13 @@ class ReadRecursive:
             for ass, areas in filter(lambda pair: isinstance(pair[0], Assembly), layer.items()):
                 area_mappings[ass.area] = area_mappings.get(ass.area, []) + areas
 
-            mapping = stimuli_mappings + area_mappings
+            #this merges the dictionaries. don't ask why.
+            mapping = dict(stimuli_mappings, **area_mappings)
             ReadRecursive.fire(mapping, brain=brain)
 
     @staticmethod
     def read(assembly: Assembly, *, brain: Brain):
-        ReadRecursive.fire_many(assembly.brain, [assembly.parents], assembly.area)
+        ReadRecursive.fire_many(brain, [assembly.parents], assembly.area)
         return assembly.area.winners(brain=brain)
 
 
