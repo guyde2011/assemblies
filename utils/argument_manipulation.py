@@ -3,9 +3,9 @@ from inspect import Parameter
 from functools import wraps
 
 
-def signature(func):
+def signature(func, use_original=False):
     """Better signature function"""
-    return getattr(func, '__signature__', None) or _signature(func)
+    return _signature(func) if use_original else (getattr(func, '__signature__', None) or _signature(func))
 
 
 def argument_restrict(func):

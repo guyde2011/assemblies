@@ -45,10 +45,10 @@ class ReadRecursive:
         The thing we will project: areas to project it to
         """
 
-        layers: List[Dict[Projectable, List[str]]] = [{projectable: [area] for projectable in projectables}]
+        layers: List[Dict[Projectable, List[Area]]] = [{projectable: [area] for projectable in projectables}]
         while any(isinstance(projectable, Assembly) for projectable in layers[-1]):
             prev_layer: Iterable[Assembly] = (ass for ass in layers[-1].keys() if not isinstance(ass, Stimulus))
-            current_layer: Dict[Projectable, List[str]] = {}
+            current_layer: Dict[Projectable, List[Area]] = {}
             for ass in prev_layer:
                 for parent in ass.parents:
                     current_layer[parent] = current_layer.get(ass, []) + [ass.area]
@@ -57,21 +57,18 @@ class ReadRecursive:
 
         layers = layers[::-1]
         for layer in layers:
-            stimuli_mappings: Dict[str, List[str]] = {stim.name: areas
-                                                      for stim, areas in
-                                                      layer.items() if isinstance(stim, Stimulus)}
+            stimuli_mappings: Dict[Stimulus, List[Area]] = {stim: areas
+                                                            for stim, areas in
+                                                            layer.items() if isinstance(stim, Stimulus)}
 
-            area_mappings: Dict[str, List[str]] = {}
-            for ass, areas in filter(lambda pair: isinstance(pair[0], Assembly), layer.items()):
-                area_mappings[ass.area] = area_mappings.get(ass.area, []) + areas
+            assembly_mapping: Dict[Area, List[Area]] = {}
+            for ass, areas in filter(lambda t: (lambda assembly, _: isinstance(assembly, Assembly))(*t), layer.items()):
+                assembly_mapping[ass.area] = assembly_mapping.get(ass.area, []) + areas
 
-            #this merges the dictionaries. don't ask why.
-            mapping = dict(stimuli_mappings, **area_mappings)
+            mapping = {**stimuli_mappings, **assembly_mapping}
             ReadRecursive.fire(mapping, brain=brain)
 
     @staticmethod
     def read(assembly: Assembly, *, brain: Brain):
-        ReadRecursive.fire_many(brain, [assembly.parents], assembly.area)
-        return assembly.area.winners(brain=brain)
-
-
+        ReadRecursive.fire_many(brain, assembly.parents, assembly.area)
+        return brain.winners[assembly.area]

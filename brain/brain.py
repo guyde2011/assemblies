@@ -36,6 +36,12 @@ class Brain(UniquelyIdentifiable):
 		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = defaultdict(lambda: set())
 		self.ctx_stack: List[Dict[Union[BrainPart, Assembly], Optional[Brain]]] = []
 
+		for area in self.recipe.areas:
+			self.connectome.add_area(area)
+
+		for stimulus in self.recipe.stimuli:
+			self.connectome.add_stimulus(stimulus)
+
 	def next_round(self):
 		return self.connectome.project(self.active_connectome)
 
@@ -113,6 +119,6 @@ class Brain(UniquelyIdentifiable):
 
 
 def bake(recipe: BrainRecipe, p: float, connectome_cls, t: int = 1):
-	brain = Brain(connectome_cls(p, areas=recipe.areas, stimuli=recipe.stimuli), recipe=recipe, t=t)
+	brain = Brain(connectome_cls(p), recipe=recipe, t=t)
 	recipe.initialize(brain)
 	return brain

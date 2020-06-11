@@ -17,9 +17,6 @@ Projectable = Union['Assembly', Stimulus]
 bound_assembly_tuple = ImplicitResolution(lambda instance, name:
                                           Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'brain')
 repeat = Repeat(resolve=lambda self, *args, **kwargs: self.t)
-# TODO: Fix multiple_assembly_repeat (Eyal/Ido?)
-multiple_assembly_repeat = Repeat(resolve=lambda assembly1, assembly2, *args, **kwargs: max(assembly1.t, assembly2.t))
-multiple_assembly_repeat = lambda x: x
 
 
 # TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
@@ -126,10 +123,10 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     def read(self, *, brain: Brain) -> Tuple[int, ...]:
         return self.reader.read(self, brain)
 
-    def update_hook(self, *, brain: Brain):
+    def _update_hook(self, *, brain: Brain):
         self.reader.update_hook(self, brain)
 
-    def project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
+    def project(self, area: Area, *, brain: Brain = None) -> Assembly:
         """
         Projects an assembly into an area
         :param brain:
@@ -145,16 +142,14 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
             #LINE FOR AFTER MERGE WITH PERFORMANCE
             #brain.connectome.winners[self.area] = neurons OR brain.connectome.setwinners(..)
 
-
             #CURRENT TEMPORARY BOOTSTRAPPING LINE
             brain.connectome._winners[self.area] = set(neurons)
 
             for _ in range(brain.t):
                 brain.connectome.project({self.area: [area]})
 
-            # Assembly.fire(brain, {self.area: [area]})
             # TODO: Tomer, update
-            # projected_assembly.update_support(brain, brain.winners[area])
+            # projected_assembly._update_hook(brain=brain)
 
         projected_assembly.bind_like(self)
         return projected_assembly
@@ -163,7 +158,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         assert isinstance(other, Area), "Assembly must be projected onto an area"
         return self.project(other)
 
-    def reciprocal_project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
+    def reciprocal_project(self, area: Area, *, brain: Brain = None) -> Assembly:
         """
         Reciprocally projects an assembly into an area,
         creating a projected assembly with strong bi-directional links to the current one
@@ -171,13 +166,14 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :param area:
         :return: Resulting projected assembly
         """
-        projected_assembly: Assembly = self.project(brain, area)
-        # Assembly.fire({projected_assembly: area})
+        projected_assembly: Assembly = self.project(area, brain=brain)
+        projected_assembly.project(self.area, brain=brain)
+
         return projected_assembly
 
     @staticmethod
     @multiple_assembly_repeat
-    def _merge(assemblies: Tuple[Assembly, ...], area: Area, *, brain: Brain = None) -> 'Assembly':
+    def _merge(assemblies: Tuple[Assembly, ...], area: Area, *, brain: Brain = None) -> Assembly:
         """
         Creates a new assembly with all input assemblies as parents,
         practically creates a new assembly with one-directional links from parents
@@ -225,10 +221,10 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         for x, y in pairs:
             Assembly._merge((x, y), x.area, brain=brain)  # Eyal: You omitted brain, notice that you need to specify it
 
-    def __lt__(self, other: 'Assembly'):
+    def __lt__(self, other: Assembly):
         """Checks that other is a child assembly of self"""
         return isinstance(other, Assembly) and other in self.parents
 
-    def __gt__(self, other: 'Assembly'):
+    def __gt__(self, other: Assembly):
         """Checks if self is a child assembly of other"""
         return isinstance(other, Assembly) and self in other.parents

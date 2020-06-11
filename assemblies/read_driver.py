@@ -6,6 +6,7 @@ import re
 from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
 from brain import Brain
 
+
 class ReadDriver:
     def __init__(self, reader_name):
         self.readers = {}
@@ -27,5 +28,7 @@ class ReadDriver:
         return self.reader.read(assembly, brain=brain)
 
     def update_hook(self, brain: Brain):
+        # TODO: Tomer, what about the assembly that was updated? we need that as a parameter as well
+        # Please fix
         if hasattr(self.reader, 'update_hook'):
             self.reader.update_hook(self, brain)
