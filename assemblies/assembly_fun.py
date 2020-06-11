@@ -123,6 +123,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
             # CURRENT TEMPORARY BOOTSTRAPPING LINE
             brain.connectome._winners[self.area] = set(neurons)
 
+            # Replace=True for better performance
             brain.next_round({self.area: [area]}, replace=True, iterations=iterations or brain.repeat)
 
             projected_assembly._update_hook(brain=brain)

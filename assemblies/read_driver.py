@@ -11,7 +11,7 @@ class ReadDriver:
     def __init__(self, reader_name):
         self.readers = {}
         assemblies = Path(__file__).parent.absolute()  # path to assemblies
-        readers = assemblies / 'ReaderDrivers'
+        readers = assemblies / 'assembly_readers'
         sys.path.insert(0, str(assemblies))
         for path in readers.iterdir():
             if not (path.is_file() and path.suffix == '.py'):

@@ -1,10 +1,27 @@
 import gc
+import time
 
 from brain import Area, Stimulus, BrainRecipe, bake, NonLazyConnectome
 from assemblies import Assembly
 from utils.i_love_my_ram import protec_ram
 
 import matplotlib.pyplot as plt
+
+"""
+Parameter Selection
+"""
+# Number of samples per graph point
+AVERAGING_SIZE = 25
+# Size of Stimulus
+STIMULUS_SIZE = 100
+# Size of areas
+AREA_SIZE = 1000
+
+# MERGE_STABILIZATIONS = (0, 1, 2, 3)
+# REPEATS = (1, 10, 25, 50, 100, 250)
+MERGE_STABILIZATIONS = (0, 1, 2, 3, 10, 25, 50, 100)
+REPEATS = (1, 10, 25, 100)
+PROJECTION_ITERATIONS = 100
 
 # Protect RAM from program using up all memory
 # Allows program to use only half of free memory
@@ -14,13 +31,6 @@ protec_ram(0.75)
 plt.title('Assemblies Merge')
 plt.xlabel('t (Repeat Parameter)')
 plt.ylabel('Overlap %')
-# Number of samples per graph point
-AVERAGING_SIZE = 5
-
-# Size of Stimulus
-STIMULUS_SIZE = 100
-# Size of areas
-AREA_SIZE = 1000
 
 # Create basic brain model
 stimulus = Stimulus(STIMULUS_SIZE)
@@ -31,11 +41,7 @@ area4 = Area(AREA_SIZE)
 assembly1 = Assembly([stimulus], area1)
 assembly2 = Assembly([stimulus], area2)
 
-# MERGE_STABILIZATIONS = (0, 1, 2, 3)
-# REPEATS = (1, 10, 25, 50, 100, 250)
-MERGE_STABILIZATIONS = (0, 1, 2, 3, 10, 25, 50)
-REPEATS = (1, 10, 25)
-
+begin_time = time.time()
 for merge_stabilization in MERGE_STABILIZATIONS:
     recipe = BrainRecipe(area1, area2, area3, area4, stimulus, assembly1, assembly2)
     # Define assembly out of recipe,
@@ -62,6 +68,9 @@ for merge_stabilization in MERGE_STABILIZATIONS:
                     assert len(A) == len(B)
                     return len(set(A).intersection(set(B))) / len(A)
 
+                # Stabilize connections between Assembly 3 and Area 4
+                assembly3.project(area4, iterations=PROJECTION_ITERATIONS)
+
                 # Project assembly for the first time
                 assembly3.project(area4, iterations=1)
                 # Store winners
@@ -74,7 +83,6 @@ for merge_stabilization in MERGE_STABILIZATIONS:
                 # Compute the overlap between first and second projection winners
                 values.append(overlap(first_winners, second_winners) * 100)
 
-            del brain
             gc.collect()
 
         # Compute average overlap
@@ -86,6 +94,9 @@ for merge_stabilization in MERGE_STABILIZATIONS:
     # Add current observations to graph
     x, y = zip(*overlap_per_repeat.items())
     plt.plot(x, y, label=f"{merge_stabilization} Merge Stabilizations")
+
+end_time = time.time()
+print(f"Simulation took {end_time - begin_time}ms")
 
 # Present and save graph
 plt.legend()
