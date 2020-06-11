@@ -23,8 +23,7 @@ multiple_assembly_repeat = lambda x: x
 
 
 # TODO: Eyal, add bindable to AssemblyTuple somehow, add more syntactic sugar
-# fix uniquleyidentifiable
-# use associate
+
 # write project (assuming read)
 
 @Recordable(('merge', True), 'associate',
@@ -45,7 +44,6 @@ class AssemblyTuple(object):
 
     def merge(self, area: Area, *, brain: Brain = None):
         return Assembly._merge(self.assemblies, area, brain=brain)
-
 
     def associate(self, other: AssemblyTuple, *, brain: Brain = None):
         # TODO: Yonatan, Fix binding
@@ -129,7 +127,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     def update_hook(self, *, brain: Brain):
         self.reader.update_hook(self, brain)
 
-
     def project(self, area: Area, *, brain: Brain = None) -> 'Assembly':
         """
         Projects an assembly into an area
@@ -138,7 +135,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :return: Resulting projected assembly
         """
         assert isinstance(area, Area), "Project target must be an Area"
-        projected_assembly: Assembly = Assembly([self], area, t=self.t, appears_in=self.appears_in)
+        projected_assembly: Assembly = Assembly([self], area, appears_in=self.appears_in)
         print("Firing", brain)
         if brain is not None:
             pass
@@ -181,12 +178,12 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         print("Merging...", brain)
 
         # Lets think about this
-        merged_assembly: Assembly = Assembly(assemblies, area, t=assemblies[0].t,
+        merged_assembly: Assembly = Assembly(assemblies, area,
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
             pass
             # Assembly.fire({ass: area for ass in assemblies})
-            #merged_assembly.update_support(brain, brain.winners[area])
+            # merged_assembly.update_support(brain, brain.winners[area])
 
         merged_assembly.bind_like(*assemblies)
         return merged_assembly
@@ -206,7 +203,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :param b: second list
         """
         # Yonatan: It is OK to associate empty lists?
-        #assert 0 not in [len(a), len(b)], "attempted to associate empty list"
+        # assert 0 not in [len(a), len(b)], "attempted to associate empty list"
         # Yonatan: Let's talk about this but maybe we allow associate also from different areas?
         # looks like a nice feature
         # assert len(set([x.area for x in a + b])) <= 1, "can only associate assemblies in the same area"

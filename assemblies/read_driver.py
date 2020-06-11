@@ -3,7 +3,8 @@ from pathlib import Path
 import importlib
 import re
 
-from assemblies.assembly_fun import Brain
+from brain.components import Stimulus, BrainPart, Area, UniquelyIdentifiable
+from brain import Brain
 
 class ReadDriver:
     def __init__(self, reader_name):
