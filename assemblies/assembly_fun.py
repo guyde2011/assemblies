@@ -81,15 +81,12 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         :param reader: Name of a read driver
         """
 
-        """
-        We hash an assembly using its parents (sorted by id) and area
-        this way equivalent assemblies have the same id.
-        """
+        # We hash an assembly using its parents (sorted by id) and area
+        # this way equivalent assemblies have the same id.
         assembly_dat = (area, *sorted(parents, key=hash))
         UniquelyIdentifiable.__init__(self, assembly_dat=assembly_dat)
         AssemblyTuple.__init__(self, self)
 
-        # Removed name from parameters
         self.parents: Tuple[Projectable, ...] = tuple(parents)
         self.area: Area = area
         # TODO: Tomer, update to depend on brain as well?
@@ -98,27 +95,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         self.appears_in: Set[BrainRecipe] = set(appears_in or [])
         for recipe in self.appears_in:
             recipe.append(self)
-
-    @staticmethod
-    def _fire(mapping: Dict[BrainPart, List[BrainPart]], *, brain: Brain = None):
-        """
-        Fire an assembly
-        TODO: Tomer, this is an helper function for you right? If so, move to where relevant
-        TODO: Karidi, make sure brain binding here makes sense
-        :param brain:
-        :param mapping:
-        :return:
-        """
-        # TODO: Ido & Eyal, this is supposed to be mapping into BrainPart not str, update if needed (?)
-        # I updated the signature
-        for p in mapping:
-            for t in mapping[p]:
-                # TODO: Ido & Eyal, handle the case the projectable is an assembly (?)
-                brain.inhibit(p, t)
-        brain.next_round()
-        for p in mapping:
-            for t in mapping[p]:
-                brain.disinhibit(p, t)
 
     def read(self, *, brain: Brain) -> Tuple[int, ...]:
         return self.reader.read(self, brain)
@@ -139,14 +115,13 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         if brain is not None:
             neurons = self.read(brain=brain)
 
-            #LINE FOR AFTER MERGE WITH PERFORMANCE
-            #brain.connectome.winners[self.area] = neurons OR brain.connectome.setwinners(..)
+            # LINE FOR AFTER MERGE WITH PERFORMANCE
+            # brain.connectome.winners[self.area] = neurons OR brain.connectome.setwinners(..)
 
-            #CURRENT TEMPORARY BOOTSTRAPPING LINE
+            # CURRENT TEMPORARY BOOTSTRAPPING LINE
             brain.connectome._winners[self.area] = set(neurons)
 
-            for _ in range(brain.t):
-                brain.connectome.project({self.area: [area]})
+            brain.next_round({self.area: [area]}, replace=True, iterations=brain.t)
 
             # TODO: Tomer, update
             # projected_assembly._update_hook(brain=brain)
@@ -172,7 +147,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         return projected_assembly
 
     @staticmethod
-    @multiple_assembly_repeat
     def _merge(assemblies: Tuple[Assembly, ...], area: Area, *, brain: Brain = None) -> Assembly:
         """
         Creates a new assembly with all input assemblies as parents,
@@ -198,7 +172,6 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         return merged_assembly
 
     @staticmethod
-    @multiple_assembly_repeat
     def _associate(a: Tuple[Assembly, ...], b: Tuple[Assembly, ...], *, brain: Brain = None) -> None:
         """
         Associates two lists of assemblies, by strengthening each bond in the

@@ -13,20 +13,23 @@ assembly1 = Assembly([stimulus], area1)
 assembly2 = Assembly([stimulus], area2)
 recipe = BrainRecipe(area1, area2, area3, area4, stimulus, assembly1, assembly2)
 
-assembly3 = (assembly1 + assembly2) >> area3
-
 with recipe:
-    # assembly4 = assembly3 >> area1
-    # assembly1.associate(assembly3)
-    pass
+    assembly3 = (assembly1 + assembly2) >> area3
 
 print("Beginning simulation")
 
-with bake(recipe, 0.1, NonLazyConnectome, t=1) as brain:
+with bake(recipe, 0.1, NonLazyConnectome, t=10 ** 4) as brain:
+    def overlap(A, B):
+        assert len(A) == len(B)
+        return len(set(A).intersection(set(B))) / len(A)
+
     assembly3 >> area4
-    print("Winners: " + str(sorted(area4.winners)))
+    first_winners = area4.winners
+    # print("Winners: " + str(sorted(first_winners)))
     assembly3 >> area4
-    print("Winners: " + str(sorted(area4.winners)))
+    second_winners = area4.winners
+    # print("Winners: " + str(sorted(second_winners)))
+    print(f"Overlap: {overlap(first_winners, second_winners) * 100}%")
 
     assembly3 = (assembly1 + assembly2).merge(area3)
     assembly1.associate(assembly3)
