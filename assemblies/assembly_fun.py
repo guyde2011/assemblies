@@ -171,8 +171,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
             # TODO: Eyal, do merge
-            pass
-            # Assembly.fire({ass: area for ass in assemblies})
+            for ass in assemblies:
+                ass.project(area)
             merged_assembly._update_hook(brain=brain)
 
         merged_assembly.bind_like(*assemblies)
