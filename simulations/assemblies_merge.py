@@ -9,7 +9,7 @@ from brain import Area, Stimulus, BrainRecipe, bake, NonLazyConnectome
 from assemblies import Assembly
 from assemblies.utils import fire_many
 from simulations.logger import Logger
-from utils.i_love_my_ram import protecc_ram
+#from utils.i_love_my_ram import protecc_ram
 
 import matplotlib.pyplot as plt
 
@@ -37,7 +37,7 @@ TESTS = (
 
 # Generate a unique identifier for saving the graph
 uid = uuid.uuid4()
-
+"""
 # Save test information
 base_path = Path(os.path.dirname(__file__)).resolve() / f'artifacts/{uid}'
 base_path.mkdir()
@@ -53,11 +53,11 @@ with open(base_path / 'tests.txt', 'w') as f:
 
 # Redirect console to logfile
 Logger(base_path / 'log').__enter__()
-
+"""
 
 # Protect RAM from program using up all memory
 # Allows program to use only half of free memory
-protecc_ram(0.75)
+#protecc_ram(0.75)
 
 # Create graph for presenting the results
 fig, ax = plt.subplots()
