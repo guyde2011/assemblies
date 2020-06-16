@@ -1,6 +1,5 @@
 from __future__ import annotations
 from .read_driver import ReadDriver
-from brain import Brain
 from utils.blueprints.recordable import Recordable
 from utils.implicit_resolution import ImplicitResolution
 from utils.bindable import Bindable
@@ -9,6 +8,7 @@ from typing import Iterable, Union, Tuple, TYPE_CHECKING, Set, Optional
 from itertools import product
 
 if TYPE_CHECKING:
+    from brain import Brain
     from brain.brain_recipe import BrainRecipe
 
 Projectable = Union['Assembly', Stimulus]

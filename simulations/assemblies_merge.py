@@ -1,42 +1,68 @@
 import gc
+import json
+import os
 import time
+import uuid
+from pathlib import Path
 
 from brain import Area, Stimulus, BrainRecipe, bake, NonLazyConnectome
 from assemblies import Assembly
+from assemblies.utils import fire_many
+from simulations.logger import Logger
 from utils.i_love_my_ram import protec_ram
 
 import matplotlib.pyplot as plt
+
 
 """
 Parameter Selection
 """
 # Number of samples per graph point
-AVERAGING_SIZE = 25
+AVERAGING_SIZE = 5
 # Size of Stimulus
 STIMULUS_SIZE = 100
 # Size of areas
 AREA_SIZE = 1000
 
-# MERGE_STABILIZATIONS = (0, 1, 2, 3)
-# REPEATS = (1, 10, 25, 50, 100, 250)
-# MERGE_STABILIZATIONS = (0, 1, 2, 3, 10, 25)
-# REPEATS = (1, 5, 10, 25)
+
 TESTS = (
     (1, (1, 3, 5, 10, 25, 100, 250)),
-    (3, (1, 3, 5, 10, 25, 100)),
-    (5, (1, 3, 5, 10, 25, 100)),
-    (10, (1, 3, 5, 10, 25, 100)),
-    (25, (1, 3, 5, 10, 25, 50)),
-    (50, (1, 3, 5, 10, 25, 50)),
-    (100, (1, 3, 5, 10, 25)),
+    (3, (1, 3, 5, 10, 25, 100, 250)),
+    (5, (1, 3, 5, 10, 25, 100, 250)),
+    (10, (1, 3, 5, 10, 25, 100, 250)),
+    (25, (1, 3, 5, 10, 25, 50, 100)),
+    (50, (1, 3, 5, 10, 25, 50, 100)),
+    (100, (1, 3, 5, 10, 25, 50, 100)),
 )
+
+# Generate a unique identifier for saving the graph
+uid = uuid.uuid4()
+
+# Save test information
+base_path = Path(os.path.dirname(__file__)).resolve() / f'artifacts/{uid}'
+base_path.mkdir()
+
+with open(base_path / 'parameters.txt', 'w') as f:
+    f.write(json.dumps({
+        'AVERAGING_SIZE': AVERAGING_SIZE,
+        'STIMULUS_SIZE': STIMULUS_SIZE,
+        'AREA_SIZE': AREA_SIZE
+    }))
+with open(base_path / 'tests.txt', 'w') as f:
+    f.write(json.dumps(TESTS, indent=4))
+
+# Redirect console to logfile
+Logger(base_path / 'log').__enter__()
+
 
 # Protect RAM from program using up all memory
 # Allows program to use only half of free memory
 protec_ram(0.75)
 
 # Create graph for presenting the results
+fig, ax = plt.subplots()
 plt.title('Assemblies Merge')
+ax.set_xscale('log')
 plt.xlabel('t (Repeat Parameter)')
 plt.ylabel('Overlap %')
 
@@ -62,16 +88,14 @@ for merge_stabilization, repeats in TESTS:
             assembly1 >> area3
             assembly2 >> area3
 
-        # Stabilize connections between Assembly 3 and Area 4
-        assembly3.project(area4)
-
     # Dictionary for storing results
     overlap_per_repeat = {}
     for t in repeats:
-        print(f"Beginning simulation with merge_stabilization={merge_stabilization}, t={t}:")
+        print(f"Beginning simulation with merge_stabilization={merge_stabilization}, t={t}:", flush=True)
 
         # Averaging loop
         values = []
+        specific_sim_start = time.time()
         for _ in range(AVERAGING_SIZE):
             # Create brain from recipe
             with bake(recipe, 0.1, NonLazyConnectome, train_repeat=t, effective_repeat=3) as brain:
@@ -80,13 +104,14 @@ for merge_stabilization, repeats in TESTS:
                     return len(set(A).intersection(set(B))) / len(A)
 
                 # Project assembly for the first time
-                assembly3 >> area4
+                fire_many(brain, [assembly1, assembly2], area3)
                 # Store winners
-                first_winners = area4.winners
+                first_winners = area3.winners
+
                 # Project assembly for the second time
-                assembly3 >> area4
+                fire_many(brain, [assembly1, assembly2], area3)
                 # Store winners
-                second_winners = area4.winners
+                second_winners = area3.winners
 
                 # Compute the overlap between first and second projection winners
                 values.append(overlap(first_winners, second_winners) * 100)
@@ -98,14 +123,18 @@ for merge_stabilization, repeats in TESTS:
         overlap_per_repeat[t] = overlap_value
 
         print(f"\tOverlap: {overlap_value}%")
+        print(f"\tCurrent simulation took {time.time() - specific_sim_start}s")
+        print(f"\tElapsed time: {time.time() - begin_time}s", flush=True)
 
     # Add current observations to graph
     x, y = zip(*overlap_per_repeat.items())
-    plt.plot(x, y, label=f"{merge_stabilization} Merge Stabilizations")
+    ax.plot(x, y, label=f"{merge_stabilization} MS")
+
+    # Present graph
+    fig.legend()
+
+    # Save graph to file
+    fig.savefig(base_path / 'graph.pdf')
 
 end_time = time.time()
-print(f"Simulation took {end_time - begin_time}ms")
-
-# Present and save graph
-plt.legend()
-plt.show()
+print(f"Simulation took {end_time - begin_time}s", flush=True)
