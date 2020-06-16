@@ -9,7 +9,7 @@ from brain import Area, Stimulus, BrainRecipe, bake, NonLazyConnectome
 from assemblies import Assembly
 from assemblies.utils import fire_many
 from simulations.logger import Logger
-from utils.i_love_my_ram import protec_ram
+from utils.i_love_my_ram import protecc_ram
 
 import matplotlib.pyplot as plt
 
@@ -57,7 +57,7 @@ Logger(base_path / 'log').__enter__()
 
 # Protect RAM from program using up all memory
 # Allows program to use only half of free memory
-protec_ram(0.75)
+protecc_ram(0.75)
 
 # Create graph for presenting the results
 fig, ax = plt.subplots()
