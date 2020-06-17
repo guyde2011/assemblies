@@ -1,6 +1,6 @@
 from brain.components import *
-from brain.Connectome.multithreaded_connectome import MultithreadedConnectome
-from brain.Connectome import Connectome
+from brain.connectome.multithreaded_connectome import MultithreadedConnectome
+from brain.connectome import Connectome
 
 from . import profile
 

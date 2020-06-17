@@ -1,6 +1,6 @@
 import numpy as np
 
-from brain.Performance.random_matrix import RandomMatrix
+from brain.performance.random_matrix import RandomMatrix
 
 def expectation(a):
     return np.sum(a)/a.size

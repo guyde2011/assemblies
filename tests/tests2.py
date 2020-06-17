@@ -1,4 +1,4 @@
-from brain.Connectome import *
+from brain.connectome import *
 from brain import *
 import functools
 import numpy as np

@@ -1,6 +1,6 @@
 
 from brain import *
-from brain.Connectome import *
+from brain.connectome import *
 
 
 def test_area_in_brain():

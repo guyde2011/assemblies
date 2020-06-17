@@ -1,7 +1,7 @@
 from brain.components import *
-from brain.Connectome import Connectome
-from brain.Connectome import NonLazySparseConnectome
-from brain.Connectome import NonLazyConnectomeOriginal
+from brain.connectome import Connectome
+from brain.connectome import NonLazySparseConnectome
+from brain.connectome import NonLazyConnectomeOriginal
 
 import matplotlib.pylab as plt
 

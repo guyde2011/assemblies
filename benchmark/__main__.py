@@ -9,7 +9,7 @@ from . import graphit
               type=str,
               help='The graphs will be saved in graphs/name if specified')
 @click.option('-c', '--classes',
-              default=['Connectome', 'NonLazyConnectomeOriginal'],
+              default=['connectome', 'NonLazyConnectomeOriginal'],
               type=str,
               multiple=True,
               help='Classes to time and graph')

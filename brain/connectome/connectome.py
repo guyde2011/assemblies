@@ -4,8 +4,8 @@ from typing import Dict, List, Iterable, NamedTuple, cast
 import numpy as np
 from collections import defaultdict
 
-from ..Performance import MultithreadedRNG
-from ..Performance.multithreaded.multi_sum import multi_sum
+from ..performance import MultithreadedRNG
+from ..performance.multithreaded.multi_sum import multi_sum
 
 from ..components import Area, BrainPart, Stimulus, Connection
 from .abc_connectome import ABCConnectome
@@ -17,7 +17,7 @@ class Connectome(ABCConnectome):
     The object representing the connection in here is ndarray from numpy
 
     Attributes:
-        (All the attributes of Connectome
+        (All the attributes of connectome
         p: The probability for each edge of the connectome to exist
         initialize: Whether or not to fill the connectome of the brain in each place the connections are missing. If
         this is a subconnectome the initialize flag should be False
@@ -33,9 +33,16 @@ class Connectome(ABCConnectome):
         super(Connectome, self).__init__(p, areas, stimuli)
 
         self.rng = MultithreadedRNG()
+        self._disabled = set()
         self._winners: Dict[Area, List[int]] = defaultdict(lambda: [])
         if initialize:
             self._initialize_parts((areas or []) + (stimuli or []))
+
+    def disable(self, part: BrainPart, area: Area):
+        self._disabled.add((part, area))
+
+    def enable(self, part: BrainPart, area: Area):
+        self._disabled.remove((part, area))
 
     def add_area(self, area: Area):
         super().add_area(area)
@@ -99,6 +106,8 @@ class Connectome(ABCConnectome):
         """
         for area in new_winners:
             for source in sources[area]:
+                if (source, area) in self._disabled:
+                    continue
                 beta = source.beta if isinstance(source, Area) else area.beta
                 source_neurons: Iterable[int] = \
                     range(source.n) if isinstance(source, Stimulus) else self.winners[source]
@@ -148,5 +157,5 @@ class Connectome(ABCConnectome):
         self.update_connectomes(new_winners, sources_mapping)
 
         # once done everything, update areas winners
-        for area in to_update:
-            self.winners[area] = new_winners[area]
+        for area in self.areas:
+            self.winners[area] = area

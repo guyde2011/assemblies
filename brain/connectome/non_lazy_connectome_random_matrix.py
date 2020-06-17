@@ -8,8 +8,8 @@ from collections import defaultdict
 from wrapt import ObjectProxy
 import scipy.sparse as sp
 
-from ..Performance import MultithreadedRNG
-from ..Performance import RandomMatrix
+from ..performance import MultithreadedRNG
+from ..performance import RandomMatrix
 from ..components import Area, BrainPart, Stimulus, Connection
 from .abc_connectome import ABCConnectome
 
@@ -20,7 +20,7 @@ class NonLazyConnectomeRandomMatrix(ABCConnectome):
     The object representing the connection in here is sparse scipy array
 
     Attributes:
-        (All the attributes of Connectome
+        (All the attributes of connectome
         p: The probability for each edge of the connectome to exist
         initialize: Whether or not to fill the connectome of the brain in each place the connections are missing. If
         this is a subconnectome the initialize flag should be False

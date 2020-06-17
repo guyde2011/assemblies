@@ -5,7 +5,7 @@ from functools import cached_property
 from typing import Dict, Set, TYPE_CHECKING, List, Optional, Union
 
 from .components import BrainPart, Stimulus
-from brain.Connectome.abc_connectome import ABCConnectome
+from brain.connectome.abc_connectome import ABCConnectome
 from brain.components import Area, UniquelyIdentifiable
 if TYPE_CHECKING:
 	from .brain_recipe import BrainRecipe
@@ -18,7 +18,7 @@ class Brain(UniquelyIdentifiable):
 	Represents a simulated brain, with it's connectome which holds the areas, stimuli, and all the synapse weights.
 	The brain updates by selecting a subgraph of stimuli and areas, and activating only those connections.
 	The brain object works with a general connectome, which export an unified api for how the connections between the
-	parts of the brain should be used. In case of need, one should extend the Connectome API as he would like to make
+	parts of the brain should be used. In case of need, one should extend the connectome API as he would like to make
 	the implementation of the brain easier/better. Note that the brain implementation shouldn't depends on the
 	underlying implementation of the connectome.
 	

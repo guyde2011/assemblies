@@ -1,8 +1,8 @@
 from brain.components import *
-from brain.Connectome import Connectome
-from brain.Connectome import NonLazySparseConnectome
-from brain.Connectome import NonLazyConnectomeOriginal
-from brain.Connectome import NonLazyConnectomeRandomMatrix
+from brain.connectome import Connectome
+from brain.connectome import NonLazySparseConnectome
+from brain.connectome import NonLazyConnectomeOriginal
+from brain.connectome import NonLazyConnectomeRandomMatrix
 
 import matplotlib.pylab as plt
 import os
@@ -17,7 +17,7 @@ def create_gen(cls):
     The generator runs a basic connectome run, yieding after the initialization,
     the first projects and 25 additional projects, allowing step-by-step exectution of the sections,
     which enables timing.
-    :param cls: Connectome class
+    :param cls: connectome class
     :return: The described connectome gen
     """
     def gen(a1, a2, s1):
@@ -115,7 +115,7 @@ def create_graph(sample, section, path):
         plt.title(section)
         plt.xlabel('area size (#neurons)')
         plt.ylabel('time (milliseconds)')
-        name = gen if gen != 'Connectome' else 'NonLazyConnectomeNew'
+        name = gen if gen != 'connectome' else 'NonLazyConnectomeNew'
         legend.append(name)
     plt.legend(legend, loc='upper left')
     plt.savefig(f"{path}/{section}.jpg", dpi=300)
@@ -140,7 +140,7 @@ def graphit(name=None, classes=None):
 
     :param name: Name of graph,
                  if not supplied will be saved to an automatically chosen path
-    :param classes: Connectome classes to measure
+    :param classes: connectome classes to measure
     """
     sample = get_sample(classes)
     root = Path(os.path.abspath('.')) / 'graphs'

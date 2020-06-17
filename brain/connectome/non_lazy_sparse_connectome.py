@@ -18,7 +18,7 @@ class NonLazySparseConnectome(ABCConnectome):
     The object representing the connection in here is sparse scipy array
 
     Attributes:
-        (All the attributes of Connectome
+        (All the attributes of connectome
         p: The probability for each edge of the connectome to exist
         initialize: Whether or not to fill the connectome of the brain in each place the connections are missing. If
         this is a subconnectome the initialize flag should be False

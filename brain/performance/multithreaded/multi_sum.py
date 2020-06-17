@@ -1,6 +1,6 @@
 import numpy as np
 
-from brain.Performance.multithreaded.multithreaded import multithreaded
+from brain.performance.multithreaded.multithreaded import multithreaded
 
 
 @multithreaded
