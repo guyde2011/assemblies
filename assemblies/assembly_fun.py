@@ -170,11 +170,18 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         merged_assembly: Assembly = Assembly(assemblies, area,
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
-            # TODO: Eyal, do merge
+            #create a mapping from the areas to the neurons we want to fire
+            area_neuron_mapping = {ass.area: set() for ass in assemblies}
             for ass in assemblies:
-                ass.project(area)
-            merged_assembly._update_hook(brain=brain)
+                area_neuron_mapping[ass.area].update(ass.read(brain=brain))
 
+            #update winners for relevant areas in the connectome
+            for a in area_neuron_mapping:
+                brain.connectome[a]._winners = area_neuron_mapping[a]
+
+            #fire pew pew
+            # Replace=True for better performance
+            brain.next_round({a: [area] for a in area_neuron_mapping}, replace=True, iterations=brain.repeat)
         merged_assembly.bind_like(*assemblies)
         return merged_assembly
 
