@@ -1,4 +1,4 @@
-from brain.Performance.multithreaded_rng import *
+from brain.performance.multithreaded_rng import *
 
 import numpy as np
 

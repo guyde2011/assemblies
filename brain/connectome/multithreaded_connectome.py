@@ -1,24 +1,24 @@
 from itertools import chain
 from numpy.core import ndarray
-from typing import Dict, List, Iterable, NamedTuple, cast
+from typing import Dict, List, Iterable, NamedTuple, cast, Optional
 import numpy as np
 from collections import defaultdict
 
-from ..Performance import MultithreadedRNG
-from ..Performance.multithreaded.multi_sum import multi_sum
+from ..performance import MultithreadedRNG
+from ..performance.multithreaded.multithreaded import multithreaded
 
 from ..components import Area, BrainPart, Stimulus, Connection
 from .abc_connectome import ABCConnectome
 
 
 
-class NonLazyConnectomeOriginal(ABCConnectome):
+class MultithreadedConnectome(ABCConnectome):
     """
     Implementation of Non lazy random based connectome, based on the generic connectome.
     The object representing the connection in here is ndarray from numpy
 
     Attributes:
-        (All the attributes of Connectome
+        (All the attributes of connectome
         p: The probability for each edge of the connectome to exist
         initialize: Whether or not to fill the connectome of the brain in each place the connections are missing. If
         this is a subconnectome the initialize flag should be False
@@ -31,7 +31,7 @@ class NonLazyConnectomeOriginal(ABCConnectome):
         :param connections: Optional argument which gives active connections to the connectome
         :param initialize: Whether or not to initialize the connectome of the brain.
         """
-        super(NonLazyConnectomeOriginal, self).__init__(p, areas, stimuli)
+        super(MultithreadedConnectome, self).__init__(p, areas, stimuli)
 
         self.rng = MultithreadedRNG()
         self._winners: Dict[Area, List[int]] = defaultdict(lambda: [])
@@ -82,14 +82,13 @@ class NonLazyConnectomeOriginal(ABCConnectome):
         stimuli = [part for part in connections if isinstance(part, Stimulus)]
         edges = [(part, area) for part in connections for area in connections[part]]
         neural_subnet = [(edge, self.connections[edge]) for edge in edges]
-        nlc = NonLazyConnectomeOriginal(self.p, areas=list(areas), stimuli=stimuli, connections=neural_subnet,
+        nlc = MultithreadedConnectome(self.p, areas=list(areas), stimuli=stimuli, connections=neural_subnet,
                          initialize=False)
         return nlc
         # TODO fix this, this part doesn't work with the new connections implemnentation!
 
     def area_connections(self, area: Area) -> List[BrainPart]:
         return [source for source, dest in self.connections if dest == area]
-
 
     def update_connectomes(self, new_winners: Dict[Area, List[int]], sources: Dict[Area, List[BrainPart]]) -> None:
         """
@@ -127,6 +126,31 @@ class NonLazyConnectomeOriginal(ABCConnectome):
             prev_winner_inputs += np.sum(self.connections[stim, area].synapses.sum(axis=0) for stim in src_stimuli)
         return np.argpartition(prev_winner_inputs, area.k-1)[-area.k:]
 
+    @multithreaded
+    def project_into_all(self, areas: List[Area], sources_mapping: Dict[Area, List[BrainPart]]):
+        new_winners = {}
+        for area in areas:
+            new_winners[area] = self.project_into(area, sources_mapping[area])
+        return new_winners
+
+    @project_into_all.params
+    def project_into_all_params(self, threads: int, sources_mapping: Dict[Area, List[BrainPart]]):
+        areas = list(sources_mapping.keys())
+        step = int(np.ceil(len(areas) / threads))
+
+        return [
+            (
+                (
+                    areas[(i * step):min((i+1) * step, len(areas))],
+                    sources_mapping
+                ),
+                {}
+            ) for i in range(threads)]
+
+    @project_into_all.after
+    def project_into_after_all(self, outs):
+        return {a: b for dct in [a for a in outs if a is not None] for a, b in dct.items()}
+
     def project(self, connections: Dict[BrainPart, List[Area]]):
         """ Project is the basic operation where some stimuli and some areas are activated,
         with only specified connections between them active.
@@ -141,12 +165,9 @@ class NonLazyConnectomeOriginal(ABCConnectome):
         # to_update is the set of all areas that receive input
         to_update = sources_mapping.keys()
 
-        new_winners: Dict[Area, List[int]] = dict()
-        for area in to_update:
-            new_winners[area] = self.project_into(area, sources_mapping[area])
+        new_winners = self.project_into_all(sources_mapping)
 
         self.update_connectomes(new_winners, sources_mapping)
-
         # once done everything, update areas winners
         for area in to_update:
             self.winners[area] = new_winners[area]

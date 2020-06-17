@@ -2,7 +2,7 @@ from numpy.random import Generator, PCG64
 import multiprocessing
 import concurrent.futures
 import numpy as np
-from brain.Performance.multithreaded import multithreaded
+from brain.performance.multithreaded import multithreaded
 
 from typing import Optional
 
