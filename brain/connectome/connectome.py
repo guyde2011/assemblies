@@ -157,5 +157,5 @@ class Connectome(ABCConnectome):
         self.update_connectomes(new_winners, sources_mapping)
 
         # once done everything, update areas winners
-        for area in self.areas:
-            self.winners[area] = area
+        for area in to_update:
+            self.winners[area] = new_winners[area]

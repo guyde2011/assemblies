@@ -116,10 +116,10 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
 
             # TODO: Eyal see my update to line after merge
             # LINE FOR AFTER MERGE WITH PERFORMANCE
-            # brain.connectome.winners[self.area] = neurons
-
+            brain.connectome.winners[self.area] = neurons
+            #print(isinstance(neurons,Area))
             # CURRENT TEMPORARY BOOTSTRAPPING LINE
-            brain.connectome._winners[self.area] = set(neurons)
+            #brain.connectome._winners[self.area] = set(neurons)
 
             # Replace=True for better performance
             brain.next_round({self.area: [area]}, replace=True, iterations=iterations or brain.repeat)
