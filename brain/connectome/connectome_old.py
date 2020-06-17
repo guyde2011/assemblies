@@ -11,6 +11,7 @@ from ..components import Area, BrainPart, Stimulus, Connection
 from .abc_connectome import ABCConnectome
 
 
+
 class Connectome(ABCConnectome):
     """
     Implementation of Non lazy random based connectome, based on the generic connectome.
@@ -33,16 +34,9 @@ class Connectome(ABCConnectome):
         super(Connectome, self).__init__(p, areas, stimuli)
 
         self.rng = MultithreadedRNG()
-        self._disabled = set()
         self._winners: Dict[Area, List[int]] = defaultdict(lambda: [])
         if initialize:
             self._initialize_parts((areas or []) + (stimuli or []))
-
-    def disable(self, part: BrainPart, area: Area):
-        self._disabled.add((part, area))
-
-    def enable(self, part: BrainPart, area: Area):
-        self._disabled.remove((part, area))
 
     def add_area(self, area: Area):
         super().add_area(area)
@@ -78,9 +72,7 @@ class Connectome(ABCConnectome):
         :return:
         """
 
-        # synapses = self.rng.multi_generate(part.n, area.n, self.p)
-        synapses = self.rng.multi_generate(area.n, part.n, self.p).reshape((part.n, area.n), order='F')
-
+        synapses = self.rng.multi_generate(part.n, area.n, self.p)
         # synapses = np.random.binomial(1, self.p, (part.n, area.n)).astype(dtype='f')
         # synapses = sp.random(part.n, area.n, density=self.p, data_rvs=np.ones, format='lil', dtype='f')
         self.connections[part, area] = Connection(part, area, synapses)
@@ -106,13 +98,11 @@ class Connectome(ABCConnectome):
         """
         for area in new_winners:
             for source in sources[area]:
-                if (source, area) in self._disabled:
-                    continue
                 beta = source.beta if isinstance(source, Area) else area.beta
                 source_neurons: Iterable[int] = \
-                    range(source.n) if isinstance(source, Stimulus) else self.winners[source]
+                    range(source.n) if isinstance(source, Stimulus) else list(self.winners[source])
 
-                self.connections[source, area].synapses[source_neurons, new_winners[area][:, None]] *= (1 + beta)
+                self.connections[source, area].synapses[source_neurons, np.asarray(new_winners[area])[:, None]] *= (1 + beta)
 
     def project_into(self, area: Area, sources: List[BrainPart]) -> List[int]:
         """Project multiple stimuli and area assemblies into area 'area' at the same time.
@@ -131,9 +121,10 @@ class Connectome(ABCConnectome):
         prev_winner_inputs: ndarray = np.zeros(area.n)
         for source in src_areas:
             area_connectomes = self.connections[source, area]
-            prev_winner_inputs += np.sum((area_connectomes.synapses[winner, :] for winner in self.winners[source]), axis=0)
+            prev_winner_inputs += \
+                multi_sum((area_connectomes.synapses), self.winners[source])
         if src_stimuli:
-            prev_winner_inputs += np.sum(self.connections[stim, area].synapses.sum(axis=0) for stim in src_stimuli)
+            prev_winner_inputs += sum(self.connections[stim, area].synapses.sum(axis=0) for stim in src_stimuli)
         return np.argpartition(prev_winner_inputs, area.k-1)[-area.k:]
 
     def project(self, connections: Dict[BrainPart, List[Area]]):
@@ -157,5 +148,5 @@ class Connectome(ABCConnectome):
         self.update_connectomes(new_winners, sources_mapping)
 
         # once done everything, update areas winners
-        for area in self.areas:
-            self.winners[area] = area
+        for area in to_update:
+            self.winners[area] = new_winners[area]

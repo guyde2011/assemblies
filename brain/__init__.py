@@ -1,4 +1,7 @@
+
+from .components import Area, BrainPart, Stimulus
 from .brain import Brain, bake
 from .brain_recipe import BrainRecipe
-from .components import BrainPart, Connection, Area, Stimulus
-from .connectome import Connectome, NonLazyConnectome
+from assemblies import Assembly
+from .connectome import ABCConnectome
+from .connectome.connectome import Connectome

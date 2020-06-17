@@ -1,5 +1,15 @@
 ![build status](https://travis-ci.org/BrainProjectTau/Brain.svg?branch=master)
-![coverage](https://codecov.io/gh/BrainProjectTau/Brain/master/graph/badge.svg)
+[![coverage](https://img.shields.io/badge/coverage-404-lightgrey)](https://img.shields.io/badge/coverage-404-lightgrey)
+[![codesize](https://img.shields.io/github/languages/code-size/Assemblies-Performance/assemblies)](https://img.shields.io/github/languages/code-size/Assemblies-Performance/assemblies)
+[![laziness](https://img.shields.io/badge/laziness-0-brightgreen)](https://img.shields.io/badge/laziness-0-brightgreen)
+[![performance](https://img.shields.io/badge/%D7%A9%D7%A0%D7%9E%D7%A8%D7%95%D7%A4%D7%A8%D7%A2%D7%A4-100%25-ff69b4)](https://img.shields.io/badge/%D7%A9%D7%A0%D7%9E%D7%A8%D7%95%D7%A4%D7%A8%D7%A2%D7%A4-100%25-ff69b4)
+[![assemblies](https://img.shields.io/badge/assemblies-0-red)](https://img.shields.io/badge/assemblies-0-red)
+[![guyde](https://img.shields.io/badge/guyde-100%25-9cf)](https://github.com/guyde2011)
+[![badges](https://img.shields.io/badge/badges-118%25-ffcc99)](https://img.shields.io/badge/badges-118%25-ffcc99)
+[![meta](https://img.shields.io/badge/meta-1000000000000000000000%25-80dfff)](https://img.shields.io/badge/meta-1000000000000000000000%25-80dfff)
+[![bananas](https://img.shields.io/badge/bananas-0-ffdb4d)](https://www.youtube.com/watch?v=aKn0HddzuWM)
+[![exbananas](https://img.shields.io/badge/exbananas-1-yellow)](https://www.youtube.com/watch?v=vnciwwsvNcc)
+
 ## Installation
 
 1. Clone the repository and enter it:

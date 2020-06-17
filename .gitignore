@@ -1,3 +1,6 @@
-.env/
-.pytest_cache/
-.idea/
+.floo
+.floobits_readme
+.flooignore
+.env
+.pytest_cache
+graphs

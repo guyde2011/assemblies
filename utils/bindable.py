@@ -1,4 +1,4 @@
-from collections import Mapping
+from collections.abc import Mapping
 from functools import wraps, cached_property
 from typing import Optional, Any, Tuple, Dict, Set, Generic, Iterator
 from inspect import Parameter

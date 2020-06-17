@@ -1,17 +1,18 @@
 from itertools import chain
 from numpy.core import ndarray
-from typing import Dict, List, Iterable, NamedTuple, cast
+from typing import Dict, List, Iterable, NamedTuple, cast, Optional
 import numpy as np
 from collections import defaultdict
 
 from ..performance import MultithreadedRNG
-from ..performance.multithreaded.multi_sum import multi_sum
+from ..performance.multithreaded.multithreaded import multithreaded
 
 from ..components import Area, BrainPart, Stimulus, Connection
 from .abc_connectome import ABCConnectome
 
 
-class Connectome(ABCConnectome):
+
+class MultithreadedConnectome(ABCConnectome):
     """
     Implementation of Non lazy random based connectome, based on the generic connectome.
     The object representing the connection in here is ndarray from numpy
@@ -30,19 +31,12 @@ class Connectome(ABCConnectome):
         :param connections: Optional argument which gives active connections to the connectome
         :param initialize: Whether or not to initialize the connectome of the brain.
         """
-        super(Connectome, self).__init__(p, areas, stimuli)
+        super(MultithreadedConnectome, self).__init__(p, areas, stimuli)
 
         self.rng = MultithreadedRNG()
-        self._disabled = set()
         self._winners: Dict[Area, List[int]] = defaultdict(lambda: [])
         if initialize:
             self._initialize_parts((areas or []) + (stimuli or []))
-
-    def disable(self, part: BrainPart, area: Area):
-        self._disabled.add((part, area))
-
-    def enable(self, part: BrainPart, area: Area):
-        self._disabled.remove((part, area))
 
     def add_area(self, area: Area):
         super().add_area(area)
@@ -78,9 +72,7 @@ class Connectome(ABCConnectome):
         :return:
         """
 
-        # synapses = self.rng.multi_generate(part.n, area.n, self.p)
-        synapses = self.rng.multi_generate(area.n, part.n, self.p).reshape((part.n, area.n), order='F')
-
+        synapses = self.rng.multi_generate(part.n, area.n, self.p)
         # synapses = np.random.binomial(1, self.p, (part.n, area.n)).astype(dtype='f')
         # synapses = sp.random(part.n, area.n, density=self.p, data_rvs=np.ones, format='lil', dtype='f')
         self.connections[part, area] = Connection(part, area, synapses)
@@ -90,7 +82,7 @@ class Connectome(ABCConnectome):
         stimuli = [part for part in connections if isinstance(part, Stimulus)]
         edges = [(part, area) for part in connections for area in connections[part]]
         neural_subnet = [(edge, self.connections[edge]) for edge in edges]
-        nlc = Connectome(self.p, areas=list(areas), stimuli=stimuli, connections=neural_subnet,
+        nlc = MultithreadedConnectome(self.p, areas=list(areas), stimuli=stimuli, connections=neural_subnet,
                          initialize=False)
         return nlc
         # TODO fix this, this part doesn't work with the new connections implemnentation!
@@ -106,13 +98,11 @@ class Connectome(ABCConnectome):
         """
         for area in new_winners:
             for source in sources[area]:
-                if (source, area) in self._disabled:
-                    continue
                 beta = source.beta if isinstance(source, Area) else area.beta
                 source_neurons: Iterable[int] = \
-                    range(source.n) if isinstance(source, Stimulus) else self.winners[source]
+                    range(source.n) if isinstance(source, Stimulus) else list(self.winners[source])
 
-                self.connections[source, area].synapses[source_neurons, new_winners[area][:, None]] *= (1 + beta)
+                self.connections[source, area].synapses[source_neurons, np.asarray(new_winners[area])[:, None]] *= (1 + beta)
 
     def project_into(self, area: Area, sources: List[BrainPart]) -> List[int]:
         """Project multiple stimuli and area assemblies into area 'area' at the same time.
@@ -136,6 +126,31 @@ class Connectome(ABCConnectome):
             prev_winner_inputs += np.sum(self.connections[stim, area].synapses.sum(axis=0) for stim in src_stimuli)
         return np.argpartition(prev_winner_inputs, area.k-1)[-area.k:]
 
+    @multithreaded
+    def project_into_all(self, areas: List[Area], sources_mapping: Dict[Area, List[BrainPart]]):
+        new_winners = {}
+        for area in areas:
+            new_winners[area] = self.project_into(area, sources_mapping[area])
+        return new_winners
+
+    @project_into_all.params
+    def project_into_all_params(self, threads: int, sources_mapping: Dict[Area, List[BrainPart]]):
+        areas = list(sources_mapping.keys())
+        step = int(np.ceil(len(areas) / threads))
+
+        return [
+            (
+                (
+                    areas[(i * step):min((i+1) * step, len(areas))],
+                    sources_mapping
+                ),
+                {}
+            ) for i in range(threads)]
+
+    @project_into_all.after
+    def project_into_after_all(self, outs):
+        return {a: b for dct in [a for a in outs if a is not None] for a, b in dct.items()}
+
     def project(self, connections: Dict[BrainPart, List[Area]]):
         """ Project is the basic operation where some stimuli and some areas are activated,
         with only specified connections between them active.
@@ -150,12 +165,9 @@ class Connectome(ABCConnectome):
         # to_update is the set of all areas that receive input
         to_update = sources_mapping.keys()
 
-        new_winners: Dict[Area, List[int]] = dict()
-        for area in to_update:
-            new_winners[area] = self.project_into(area, sources_mapping[area])
+        new_winners = self.project_into_all(sources_mapping)
 
         self.update_connectomes(new_winners, sources_mapping)
-
         # once done everything, update areas winners
-        for area in self.areas:
-            self.winners[area] = area
+        for area in to_update:
+            self.winners[area] = new_winners[area]
