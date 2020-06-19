@@ -33,16 +33,20 @@ class Connectome(ABCConnectome):
         super(Connectome, self).__init__(p, areas, stimuli)
 
         self.rng = MultithreadedRNG()
-        self._disabled = set()
+        self._disabled = False
         self._winners: Dict[Area, List[int]] = defaultdict(lambda: [])
         if initialize:
             self._initialize_parts((areas or []) + (stimuli or []))
 
-    def disable(self, part: BrainPart, area: Area):
-        self._disabled.add((part, area))
+    def disable_plasticity(self):
+        self._disabled = True
 
-    def enable(self, part: BrainPart, area: Area):
-        self._disabled.remove((part, area))
+    @property
+    def plasticity_status(self):
+        return self._disabled
+
+    def enable_plasticity(self):
+        self._disabled = False
 
     def add_area(self, area: Area):
         super().add_area(area)
@@ -104,10 +108,10 @@ class Connectome(ABCConnectome):
         :param new_winners: the new winners per area
         :param sources: the sources of each area
         """
+        if self._disabled:
+            return
         for area in new_winners:
             for source in sources[area]:
-                if (source, area) in self._disabled:
-                    continue
                 beta = source.beta if isinstance(source, Area) else area.beta
                 source_neurons: Iterable[int] = \
                     range(source.n) if isinstance(source, Stimulus) else self.winners[source]

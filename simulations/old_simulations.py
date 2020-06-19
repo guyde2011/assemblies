@@ -46,7 +46,7 @@ def assemblies_simulation(n=1000000, k=1000, p=0.1, beta=0.05, t=100) -> Brain:
         Assembly.merge(brain, assemblies[0], assemblies[1], area_names[4])
 
     try:
-        print(f"Assembly in area of merged area is {Assembly.read(brain, assemblies, area_names[4]).name}")
+        print(f"Assembly in area of merged area is {Assembly.identify(brain, assemblies, area_names[4]).name}")
     except Exception:
         print("Read is unimplemented!")
 

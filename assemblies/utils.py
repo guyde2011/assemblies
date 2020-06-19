@@ -4,7 +4,7 @@ from assemblies.assembly_fun import Projectable, Assembly
 from brain import Brain, Area, Stimulus
 
 
-def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area):
+def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area, preserve_brain: bool = False):
     """
     params:
     -the relevant brain object, as project is dependent on the brain instance.
@@ -22,6 +22,10 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area):
     """
 
     # TODO: Add inline documentation
+    original_plasticity = brain.connectome.plasticity_status
+    changed_areas: Dict[Area, List[int]] = {}
+    if preserve_brain:
+        brain.connectome.disable_plasticity
     layers: List[Dict[Projectable, List[Area]]] = [{projectable: [area] for projectable in projectables}]
     while any(isinstance(projectable, Assembly) for projectable in layers[-1]):
         prev_layer: Iterable[Assembly] = (ass for ass in layers[-1].keys() if not isinstance(ass, Stimulus))
@@ -33,6 +37,7 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area):
         layers.append(current_layer)
 
     layers = layers[::-1]
+
     for layer in layers:
         stimuli_mappings: Dict[Stimulus, List[Area]] = {stim: areas
                                                         for stim, areas in
@@ -43,4 +48,27 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area):
             assembly_mapping[ass.area] = assembly_mapping.get(ass.area, []) + areas
 
         mapping = {**stimuli_mappings, **assembly_mapping}
+        if preserve_brain:
+            for areas in mapping.values():
+                for area in areas:
+                    changed_areas[area] = area.winners
         brain.next_round(mapping)
+    if not original_plasticity:
+        brain.connectome.enable_plasticity
+    return changed_areas
+
+
+def revert_changes(brain: Brain, *changed_areas: Dict[Area, List[int]]):
+    """
+    Changes the winners of areas in the given brain as dictated in the changed_areas dictionary
+
+    :param brain: a brain
+    :param changed_areas: a dictionary mapping between areas and their previous winners
+    :return: None
+    """
+    changed_areas = changed_areas[::-1]
+    changes = changed_areas[0]
+    for change in changed_areas:
+        changes.update(change)
+    for area in changes:
+        brain.connectome.winners[area] = changes[area]

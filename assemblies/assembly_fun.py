@@ -4,7 +4,7 @@ from utils.blueprints.recordable import Recordable
 from utils.implicit_resolution import ImplicitResolution
 from utils.bindable import Bindable
 from brain.components import Stimulus, Area, UniquelyIdentifiable
-from typing import Iterable, Union, Tuple, TYPE_CHECKING, Set, Optional
+from typing import Iterable, Union, Tuple, TYPE_CHECKING, Set, Optional, Dict
 from itertools import product
 
 if TYPE_CHECKING:
@@ -94,13 +94,19 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         for recipe in self.appears_in:
             recipe.append(self)
 
-    def read(self, *, brain: Brain) -> Tuple[int, ...]:
-        return self.reader.read(self, brain)
+    def identify(self, preserve_brain=False, *, brain: Brain) -> Tuple[int, ...]:
+        return self.reader.read(self, brain, preserve_brain=preserve_brain)
+
+    @staticmethod
+    def read(area, *, brain: Brain):
+        assemblies: Set[Assembly] = brain.recipe.mapping[area]
+        overlap: Dict[Assembly, float] = {}
+        for assembly in assemblies:
+            overlap[assembly] = len(set(area.winners) & set(assembly.identify(preserve_brain=True, brain=brain)))/area.k
+        return max(overlap.keys(), key=lambda x: overlap[x])
 
     def _update_hook(self, *, brain: Brain):
-        # TODO: Tomer, fix
-        # self.reader.update_hook(self, brain)
-        pass
+        self.reader.update_hook(brain, self)
 
     def project(self, area: Area, *, brain: Brain = None, iterations: Optional[int] = None) -> Assembly:
         """
@@ -112,7 +118,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         assert isinstance(area, Area), "Project target must be an Area"
         projected_assembly: Assembly = Assembly([self], area, appears_in=self.appears_in)
         if brain is not None:
-            neurons = self.read(brain=brain)
+            neurons = self.identify(brain=brain)
 
             # TODO: Eyal see my update to line after merge
             # LINE FOR AFTER MERGE WITH PERFORMANCE
@@ -173,7 +179,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
             #create a mapping from the areas to the neurons we want to fire
             area_neuron_mapping = {ass.area: set() for ass in assemblies}
             for ass in assemblies:
-                area_neuron_mapping[ass.area].update(ass.read(brain=brain))
+                area_neuron_mapping[ass.area].update(ass.identify(brain=brain))
 
             #update winners for relevant areas in the connectome
             for a in area_neuron_mapping:

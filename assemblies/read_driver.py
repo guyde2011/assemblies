@@ -27,11 +27,9 @@ class ReadDriver:
                 self.readers[val.__dict__['name']] = val
         self.reader = self.readers[reader_name]
 
-    def read(self, assembly, brain: Brain):
-        return self.reader.read(assembly, brain=brain)
+    def read(self, assembly, brain: Brain, preserve_brain: bool = False):
+        return self.reader.read(assembly, brain=brain, preserve_brain=preserve_brain)
 
-    def update_hook(self, brain: Brain):
-        # TODO: Tomer, what about the assembly that was updated? we need that as a parameter as well
-        # Please fix
+    def update_hook(self, brain: Brain, assembly):
         if hasattr(self.reader, 'update_hook'):
-            self.reader.update_hook(self, brain)
+            self.reader.update_hook(self, brain, assembly)
