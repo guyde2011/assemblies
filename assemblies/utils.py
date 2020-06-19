@@ -25,7 +25,7 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area, pre
     original_plasticity = brain.connectome.plasticity_status
     changed_areas: Dict[Area, List[int]] = {}
     if preserve_brain:
-        brain.connectome.disable_plasticity
+        brain.connectome.disable_plasticity()
     layers: List[Dict[Projectable, List[Area]]] = [{projectable: [area] for projectable in projectables}]
     while any(isinstance(projectable, Assembly) for projectable in layers[-1]):
         prev_layer: Iterable[Assembly] = (ass for ass in layers[-1].keys() if not isinstance(ass, Stimulus))
@@ -54,7 +54,7 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area, pre
                     changed_areas[area] = area.winners
         brain.next_round(mapping)
     if not original_plasticity:
-        brain.connectome.enable_plasticity
+        brain.connectome.enable_plasticity()
     return changed_areas
 
 
