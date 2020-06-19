@@ -99,7 +99,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
 
     @staticmethod
     def read(area, *, brain: Brain):
-        assemblies: Set[Assembly] = brain.recipe.mapping[area]
+        assemblies: Set[Assembly] = brain.recipe.area_assembly_mapping[area]
         overlap: Dict[Assembly, float] = {}
         for assembly in assemblies:
             overlap[assembly] = len(set(area.winners) & set(assembly.identify(preserve_brain=True, brain=brain)))/area.k

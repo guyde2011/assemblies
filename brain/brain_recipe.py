@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class BrainRecipe:
     def __init__(self, *parts: Union[BrainPart, Assembly]):
         self.areas: Set[Area] = set()
-        self.mapping: Dict[Area, Set[Assembly]] = {}
+        self.area_assembly_mapping: Dict[Area, Set[Assembly]] = {}
         self.stimuli: Set[Stimulus] = set()
         self.assemblies: Set[Assembly] = set()
         self.extend(*parts)
@@ -20,8 +20,8 @@ class BrainRecipe:
 
     def _add_area(self, area: Area):
         self.areas.add(area)
-        if area not in self.mapping:
-            self.mapping[area] = set()
+        if area not in self.area_assembly_mapping:
+            self.area_assembly_mapping[area] = set()
 
     def _add_stimulus(self, stimulus: Stimulus):
         self.stimuli.add(stimulus)
@@ -29,7 +29,7 @@ class BrainRecipe:
     def _add_assembly(self, assembly: Assembly):
         self._add_area(assembly.area)
         self.assemblies.add(assembly)
-        self.mapping[assembly.area].add(assembly)
+        self.area_assembly_mapping[assembly.area].add(assembly)
         if self not in assembly.appears_in:
             assembly.appears_in.add(self)
 

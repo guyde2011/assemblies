@@ -82,6 +82,8 @@ for merge_stabilization, repeats in TESTS:
                 first_winners = area4.winners
                 # Project assembly for the second time
                 assembly3 >> area4
+                print(assembly3.identify(preserve_brain=True))
+                print(Assembly.read(area4, brain=brain))
                 # Store winners
                 second_winners = area4.winners
 
