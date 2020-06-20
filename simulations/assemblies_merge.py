@@ -88,8 +88,7 @@ for merge_stabilization, repeats in TESTS:
     with recipe:
         # Manual merge process by interleaved projects
         for _ in range(merge_stabilization):
-            # alternative, different way:
-            # (assembly1 + assembly2) >> area3
+
 
             assembly1 >> area3
             assembly2 >> area3
