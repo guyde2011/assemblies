@@ -120,12 +120,11 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         if brain is not None:
 
             neurons = self.identify(brain=brain)
+
             # TODO: Eyal see my update to line after merge
             # LINE FOR AFTER MERGE WITH PERFORMANCE
-            brain.connectome.winners[self.area] = neurons
+            brain.connectome.winners[self.area] = list(neurons)
             #print(isinstance(neurons,Area))
-            # CURRENT TEMPORARY BOOTSTRAPPING LINE
-            #brain.connectome._winners[self.area] = set(neurons)
 
             # Replace=True for better performance
             brain.next_round({self.area: [area]}, replace=True, iterations=iterations or brain.repeat)
@@ -176,15 +175,16 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         merged_assembly: Assembly = Assembly(assemblies, area,
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
+
             #create a mapping from the areas to the neurons we want to fire
             area_neuron_mapping = {ass.area: [] for ass in assemblies}
             for ass in assemblies:
-                area_neuron_mapping[ass.area].append(ass.identify(brain=brain)[0]) #maybe preserve brain?
-                #WTF? read returns tuple! fix
+                area_neuron_mapping[ass.area].append(list(ass.identify(brain=brain))) #maybe preserve brain?
+
 
             #update winners for relevant areas in the connectome
             for a in area_neuron_mapping.keys():
-                brain.connectome.winners[a] = area_neuron_mapping[a]
+                brain.connectome.winners[a] = area_neuron_mapping[a][0]
 
 
             #fire pew pew
