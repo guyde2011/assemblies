@@ -18,14 +18,13 @@ bound_assembly_tuple = ImplicitResolution(lambda instance, name:
                                           Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'brain')
 
 
-# TODO: Eyal, add more syntactic sugar
-
 @Recordable(('merge', True), 'associate',
             resolution=ImplicitResolution(
                 lambda instance, name: Bindable.implicitly_resolve_many(instance.assemblies, name, False), 'recording'))
 class AssemblyTuple(object):
     """
     Wraps a tuple of assemblies with syntactic sugar, such as >> (merge).
+
     :param assemblies: a tuple containing the assemblies
     """
 
@@ -36,6 +35,7 @@ class AssemblyTuple(object):
         """
         In the context of AssemblyTuples, + creates a new AssemblyTuple containing the members
         of both parts.
+
         :param other: the other AssemblyTuple we add
         :returns: the new AssemblyTuple
         """
@@ -54,6 +54,7 @@ class AssemblyTuple(object):
         """
         In the context of assemblies, >> symbolizes merge.
         Example: (within a brain context) (a1+a2+a3)>>area
+
         :param other: the area we merge into
         :return: the new merged assembly
         """
@@ -112,7 +113,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     # TODO: add option to manually change the assemblies' recipes
     def project(self, area: Area, *, brain: Brain = None, iterations: Optional[int] = None) -> Assembly:
         """
-        Projects an assembly into an area
+        Projects an assembly into an area.
+
         :param brain: the brain in which the projection happens
         :param area: the area in which the new assembly is going to be created
         :returns: resulting projected assembly
@@ -123,10 +125,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
 
             neurons = self.identify(brain=brain)
 
-            # TODO: Eyal see my update to line after merge
-            # LINE FOR AFTER MERGE WITH PERFORMANCE
             brain.connectome.winners[self.area] = list(neurons)
-            #print(isinstance(neurons,Area))
 
             # Replace=True for better performance
             brain.next_round({self.area: [area]}, replace=True, iterations=iterations or brain.repeat)
@@ -140,6 +139,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         """
         In the context of assemblies, >> represents project.
         Example: a >> A (a is an assembly, A is an area)
+
         :param other: the area into which we project
         :returns: the new assembly that was created
         """
@@ -149,7 +149,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     def reciprocal_project(self, area: Area, *, brain: Brain = None) -> Assembly:
         """
         Reciprocally projects an assembly into an area,
-        creating a projected assembly with strong bi-directional links to the current one
+        creating a projected assembly with strong bi-directional links to the current one.
+
         :param brain: the brain in which the projection occurs
         :param area: the area into which we project
         :returns: Resulting projected assembly
@@ -166,6 +167,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         Creates a new assembly with all input assemblies as parents.
         Practically creates a new assembly with one-directional links from parents
         ONLY CALL AS: Assembly.merge(...), as the function is invariant under input order.
+
         :param brain: the brain in which the merge occurs
         :param assemblies: the parents of the new merged assembly
         :param area: the area into which we merge
@@ -173,23 +175,18 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         """
         assert len(assemblies) != 0, "tried to merge with empty input"
 
-        # Lets think about this
         merged_assembly: Assembly = Assembly(assemblies, area,
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
-
-            #create a mapping from the areas to the neurons we want to fire
+            # create a mapping from the areas to the neurons we want to fire
             area_neuron_mapping = {ass.area: [] for ass in assemblies}
             for ass in assemblies:
                 area_neuron_mapping[ass.area] = list(ass.identify(brain=brain)) #maybe preserve brain?
 
-
-            #update winners for relevant areas in the connectome
+            # update winners for relevant areas in the connectome
             for source in area_neuron_mapping.keys():
                 brain.connectome.winners[source] = area_neuron_mapping[source]
 
-
-            #fire pew pew
             # Replace=True for better performance
             brain.next_round(subconnectome={source: [area] for source in area_neuron_mapping}, replace=True, iterations=brain.repeat)
 
@@ -207,6 +204,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         A1 z-z B1
         A2 -X- B2
         A3 z-z B3
+
         :param a: first list
         :param b: second list
         """
@@ -218,6 +216,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     def __lt__(self, other: Assembly):
         """
         Checks that other is a child assembly of self.
+
         :param other: the assembly we compare against
         """
         return isinstance(other, Assembly) and other in self.parents
@@ -225,6 +224,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     def __gt__(self, other: Assembly):
         """
         Checks if self is a child assembly of other.
+
         :param other: the assembly we compare against
         """
         return isinstance(other, Assembly) and self in other.parents
