@@ -42,7 +42,7 @@ uid = uuid.uuid4()
 base_path = Path(os.path.dirname(__file__)).resolve() / 'artifacts'
 if not base_path.is_dir():
     base_path.mkdir()
-base_path = base_path / f'/{uid}'
+base_path = base_path / f'{uid}'
 base_path.mkdir()
 
 with open(base_path / 'parameters.txt', 'w') as f:
