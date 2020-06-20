@@ -108,6 +108,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     def _update_hook(self, *, brain: Brain):
         self.reader.update_hook(brain, self)
 
+
+    # TODO: add option to manually change the new assemblies binding
     def project(self, area: Area, *, brain: Brain = None, iterations: Optional[int] = None) -> Assembly:
         """
         Projects an assembly into an area
@@ -179,17 +181,17 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
             #create a mapping from the areas to the neurons we want to fire
             area_neuron_mapping = {ass.area: [] for ass in assemblies}
             for ass in assemblies:
-                area_neuron_mapping[ass.area].append(list(ass.identify(brain=brain))) #maybe preserve brain?
+                area_neuron_mapping[ass.area] = list(ass.identify(brain=brain)) #maybe preserve brain?
 
 
             #update winners for relevant areas in the connectome
-            for a in area_neuron_mapping.keys():
-                brain.connectome.winners[a] = area_neuron_mapping[a][0]
+            for source in area_neuron_mapping.keys():
+                brain.connectome.winners[source] = area_neuron_mapping[source]
 
 
             #fire pew pew
             # Replace=True for better performance
-            brain.next_round(subconnectome={a: [area] for a in area_neuron_mapping}, replace=True, iterations=brain.repeat)
+            brain.next_round(subconnectome={source: [area] for source in area_neuron_mapping}, replace=True, iterations=brain.repeat)
 
             merged_assembly._update_hook(brain=brain)
         merged_assembly.bind_like(*assemblies)
@@ -210,7 +212,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         """
         pairs = product(a, b)
         for x, y in pairs:
-            Assembly._merge((x, y), x.area, brain=brain)  # Eyal: You omitted brain, notice that you need to specify it
+            x.project(y.area, brain=brain)
+            y.project(x.area, brain=brain)
 
     def __lt__(self, other: Assembly):
         """

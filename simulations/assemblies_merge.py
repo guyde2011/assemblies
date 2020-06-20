@@ -13,7 +13,6 @@ from utils.i_love_my_ram import protecc_ram
 
 import matplotlib.pyplot as plt
 
-
 """
 Parameter Selection
 """
@@ -23,7 +22,6 @@ AVERAGING_SIZE = 100
 STIMULUS_SIZE = 100
 # Size of areas
 AREA_SIZE = 1000
-
 
 TESTS = (
     (1, (1, 3, 5, 10, 25, 100, 250)),
@@ -59,7 +57,6 @@ with open(base_path / 'tests.txt', 'w') as f:
 # Redirect console to logfile
 Logger(base_path / 'log').__enter__()
 
-
 # Protect RAM from program using up all memory
 # Allows program to use only half of free memory
 protecc_ram(0.75)
@@ -91,6 +88,9 @@ for merge_stabilization, repeats in TESTS:
     with recipe:
         # Manual merge process by interleaved projects
         for _ in range(merge_stabilization):
+            # alternative, different way:
+            # (assembly1 + assembly2) >> area3
+
             assembly1 >> area3
             assembly2 >> area3
 
@@ -105,10 +105,10 @@ for merge_stabilization, repeats in TESTS:
         for _ in range(AVERAGING_SIZE):
             # Create brain from recipe
             with bake(recipe, 0.1, Connectome, train_repeat=t, effective_repeat=3) as brain:
-
                 def overlap(A, B):
                     assert len(A) == len(B)
                     return len(set(A).intersection(set(B))) / len(A)
+
 
                 # Project assembly for the first time
                 fire_many(brain, [assembly1, assembly2], area3)
