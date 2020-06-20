@@ -118,8 +118,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         assert isinstance(area, Area), "Project target must be an Area"
         projected_assembly: Assembly = Assembly([self], area, appears_in=self.appears_in)
         if brain is not None:
-            neurons = self.identify(brain=brain)
 
+            neurons = self.identify(brain=brain)
             # TODO: Eyal see my update to line after merge
             # LINE FOR AFTER MERGE WITH PERFORMANCE
             brain.connectome.winners[self.area] = neurons
@@ -177,17 +177,21 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
                                              appears_in=set.intersection(*[x.appears_in for x in assemblies]))
         if brain is not None:
             #create a mapping from the areas to the neurons we want to fire
-            area_neuron_mapping = {ass.area: set() for ass in assemblies}
+            area_neuron_mapping = {ass.area: [] for ass in assemblies}
             for ass in assemblies:
-                area_neuron_mapping[ass.area].update(ass.identify(brain=brain))
+                area_neuron_mapping[ass.area].append(ass.identify(brain=brain)[0]) #maybe preserve brain?
+                #WTF? read returns tuple! fix
 
             #update winners for relevant areas in the connectome
-            for a in area_neuron_mapping:
-                brain.connectome[a]._winners = area_neuron_mapping[a]
+            for a in area_neuron_mapping.keys():
+                brain.connectome.winners[a] = area_neuron_mapping[a]
+
 
             #fire pew pew
             # Replace=True for better performance
-            brain.next_round({a: [area] for a in area_neuron_mapping}, replace=True, iterations=brain.repeat)
+            brain.next_round(subconnectome={a: [area] for a in area_neuron_mapping}, replace=True, iterations=brain.repeat)
+
+            merged_assembly._update_hook(brain=brain)
         merged_assembly.bind_like(*assemblies)
         return merged_assembly
 

@@ -56,6 +56,10 @@ for merge_stabilization, repeats in TESTS:
     with recipe:
         # Manual merge process by interleaved projects
         for _ in range(merge_stabilization):
+            #the new merge implementation (obtains similiar results)
+            #(assembly1 + assembly2) >> area3
+
+            #old merge (iterative projecting)
             assembly1 >> area3
             assembly2 >> area3
 
@@ -72,6 +76,7 @@ for merge_stabilization, repeats in TESTS:
         for _ in range(AVERAGING_SIZE):
             # Create brain from recipe
             with bake(recipe, 0.1, Connectome, train_repeat=t, effective_repeat=3) as brain:
+
                 def overlap(A, B):
                     assert len(A) == len(B)
                     return len(set(A).intersection(set(B))) / len(A)
@@ -82,8 +87,8 @@ for merge_stabilization, repeats in TESTS:
                 first_winners = area4.winners
                 # Project assembly for the second time
                 assembly3 >> area4
-                print(assembly3.identify(preserve_brain=True))
-                print(Assembly.read(area4, brain=brain))
+                #print(assembly3.identify(preserve_brain=True))
+                #print(Assembly.read(area4, brain=brain))
                 # Store winners
                 second_winners = area4.winners
 
