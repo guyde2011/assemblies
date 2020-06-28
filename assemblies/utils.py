@@ -63,7 +63,10 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area, pre
         brain.connectome.enable_plasticity()
     return changed_areas
 
-
+# TODO: This function should belong to brain.py, and probably implemented otherwise.
+#       This is because it is very likely that changes will be made that will make
+#       this function behave poorly - perhaps not remember to revert some structure
+#       will be added later on. It would be a bitch to debug.
 def revert_changes(brain: Brain, *changed_areas: Dict[Area, List[int]]):
     """
     Changes the winners of areas in the given brain as dictated in the changed_areas dictionary
