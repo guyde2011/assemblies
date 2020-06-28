@@ -6,7 +6,8 @@ from typing import Dict, List, Tuple, Optional, TypeVar, Mapping, Generic, Calla
 
 from wrapt import ObjectProxy  # Needed to pip install
 
-from ..components import BrainPart, Area, Stimulus, Connection
+from ..components import BrainPart, Area, Stimulus, Connection  # imports shouldn't depend on dir
+                                                                # structure. find an alternative
 
 
 # The wrapt library implements easy to use wrapper objects, which delegates everything to the object you are

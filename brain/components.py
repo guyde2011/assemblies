@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 from utils.bindable import Bindable, bindable_property
 
-
+# TODO: document me pleaaase
 class UniquelyIdentifiable:
     hist = {}
 
@@ -38,6 +38,7 @@ class Area(UniquelyIdentifiable):
         if k == 0:
             self.k = math.sqrt(n)
 
+    # TODO: return as a set?
     @bindable_property
     def winners(self, *, brain: Brain):
         return brain.winners[self]

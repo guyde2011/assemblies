@@ -13,7 +13,8 @@ class ReadDriver:
     and collects it into the dictionary. The key is the 'name' parameter of the class.
     :param reader_name: the name of the reader we've chosen to use
     """
-    # TODO: factory
+    # TODO: use factory and don't read modules dynamically from directory.
+    #       one good reason, is that the user won't be able to use autocomplete.
     def __init__(self, reader_name):
         self.readers = {}
         # Path to assemblies package

@@ -1,5 +1,6 @@
-from __future__ import annotations
-from .read_driver import ReadDriver
+# TODO: rename this file
+from __future__ import annotations  # TODO: remove this allover, we are using python 3
+from .read_driver import ReadDriver  # TODO: It shouldn't depend on directory structure.
 from utils.blueprints.recordable import Recordable
 from utils.implicit_resolution import ImplicitResolution
 from utils.bindable import Bindable
@@ -7,10 +8,11 @@ from brain.components import Stimulus, Area, UniquelyIdentifiable
 from typing import Iterable, Union, Tuple, TYPE_CHECKING, Set, Optional, Dict
 from itertools import product
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # TODO: this is not needed. It's better to always import them.
     from brain import Brain
     from brain.brain_recipe import BrainRecipe
 
+# TODO: Document this type annotation. remember that future contributers may not know why it is necessary to use a string
 Projectable = Union['Assembly', Stimulus]
 
 # TODO: Look at parameters as well? (Yonatan, for associate)
@@ -53,6 +55,7 @@ class AssemblyTuple(object):
     def associate(self, other: AssemblyTuple, *, brain: Brain = None):
         return Assembly._associate(self.assemblies, other.assemblies, brain=brain)
 
+    # TODO: rename other
     def __rshift__(self, other: Area):
         """
         In the context of assemblies, >> symbolizes merge.
@@ -79,8 +82,8 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
     merge and associate) by using a reader object, which interacts with the brain directly.
 
     :param parents: the Assemblies and/or Stimuli that were used to create the assembly
-    :param appears_in: an iterable containing every BrainRecipe in which the assembly appears
     :param area: an Area where the Assembly "lives"
+    :param appears_in: an iterable containing every BrainRecipe in which the assembly appears
     :param reader: name of a read driver pulled from assembly_readers. defaults to 'default'
     """
 
@@ -98,21 +101,28 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         for recipe in self.appears_in:
             recipe.append(self)
 
+    # TODO: this name is not indicative. Perhaps change to something like to_representative_neuron_subset..
+    # TODO: reader.read is _very_ confusing with Assembly.read. Rename reader.
+    # TODO: return set
     def identify(self, preserve_brain=False, *, brain: Brain) -> Tuple[int, ...]:
         return self.reader.read(self, brain, preserve_brain=preserve_brain)
 
+    # TODO: typing for area
     @staticmethod
     def read(area, *, brain: Brain):
         assemblies: Set[Assembly] = brain.recipe.area_assembly_mapping[area]
         overlap: Dict[Assembly, float] = {}
         for assembly in assemblies:
             overlap[assembly] = len(set(area.winners) & set(assembly.identify(preserve_brain=True, brain=brain)))/area.k
-        return max(overlap.keys(), key=lambda x: overlap[x])
+        return max(overlap.keys(), key=lambda x: overlap[x])  # TODO: return None below some threshold
 
+    # TODO: document
     def _update_hook(self, *, brain: Brain):
         self.reader.update_hook(brain, self)
 
 
+    # TODO: throughout bindable classes, users might error and give the brain parameter even if the object is binded.
+    #       Is this a problem? can you help the user not make any mistakes?
     # TODO: add option to manually change the assemblies' recipes
     def project(self, area: Area, *, brain: Brain = None, iterations: Optional[int] = None) -> Assembly:
         """
@@ -138,6 +148,7 @@ class Assembly(UniquelyIdentifiable, AssemblyTuple):
         projected_assembly.bind_like(self)
         return projected_assembly
 
+    # TODO: rename other
     def __rshift__(self, other: Area):
         """
         In the context of assemblies, >> represents project.
