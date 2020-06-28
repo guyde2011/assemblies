@@ -13,6 +13,9 @@ from utils.i_love_my_ram import protecc_ram
 
 import matplotlib.pyplot as plt
 
+# TODO: Document this file, and explain what this is.
+#       Change the name to describe it as a simulation.
+
 """
 Parameter Selection
 """
@@ -122,6 +125,7 @@ for merge_stabilization, repeats in TESTS:
                 # Compute the overlap between first and second projection winners
                 values.append(overlap(first_winners, second_winners) * 100)
 
+            # TODO: Is this necessary? if so, write why, o/w delete it.
             gc.collect()
 
         # Compute average overlap

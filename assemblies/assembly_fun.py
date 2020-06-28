@@ -31,6 +31,9 @@ class AssemblyTuple(object):
     def __init__(self, *assemblies: Assembly):
         self.assemblies: Tuple[Assembly, ...] = assemblies
 
+    # TODO: This is confusing, because I expect Assembly + Assembly = Assembly.
+    #       There are other solutions. Even just AssemblyTuple(ass1, ass2) >> area is
+    #       better, but I'm sure you can do better than that.
     def __add__(self, other: AssemblyTuple):
         """
         In the context of AssemblyTuples, + creates a new AssemblyTuple containing the members
