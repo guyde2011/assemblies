@@ -10,7 +10,7 @@ from ..performance.multithreaded.multi_sum import multi_sum
 from ..components import Area, BrainPart, Stimulus, Connection
 from .abc_connectome import ABCConnectome
 
-
+## TODO: remove this file
 
 class Connectome(ABCConnectome):
     """

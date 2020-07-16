@@ -7,15 +7,20 @@ from brain.performance.multithreaded import multithreaded
 from typing import Optional
 
 
+# TODO: remove unused imports
+# TODO 2: please keep conventions - use "rg" or "rng" in class and variable names consistently
 class MultithreadedRNG:
     def __init__(self, threads=None, seed=None):
+        # TODO: document
         rg = PCG64(seed)
         self._random_generators = [rg]
         last_rg = rg
+        # TODO: `multithreaded` can be used directly as a decorator
         self.multi_generate = multithreaded(self._multi_generate, threads=threads)
         self.multi_generate.after(self._multi_generate_after)
         self.multi_generate.params(self._multi_params)
         for _ in range(len(self.multi_generate)-1):
+            # TODO: is `new_rg`, `last_rg` necessary? seems like `rg` can be overriden
             new_rg = last_rg.jumped()
             self._random_generators.append(new_rg)
             last_rg = new_rg
@@ -36,6 +41,7 @@ class MultithreadedRNG:
         return outs[0] if outs else np.empty((0, 0), dtype='float64')
 
 
+# TODO: this looks like a nice base to extract as a test! :)
 if __name__ == '__main__':
     n = 10000
     a = MultithreadedRNG().multi_generate(n, n, 0.1)

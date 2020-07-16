@@ -2,7 +2,7 @@ from brain.performance.multithreaded_rng import *
 
 import numpy as np
 
-
+# TODO: seems unused, remove
 class RandomMatrix(object):
     def __init__(self, n, m, p, mrng=None):
         self.mrng = mrng or MultithreadedRNG()

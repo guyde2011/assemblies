@@ -14,6 +14,7 @@ from ..components import Area, BrainPart, Stimulus, Connection
 from .connectome import Connectome
 
 
+# TODO: remove all non-used code from the main repository (for example - all NonLazyConnectome derivatives)
 class NonLazyConnectome(Connectome):
     """
     Implementation of Non lazy random based connectome, based on the generic connectome.
@@ -79,6 +80,7 @@ class NonLazyConnectome(Connectome):
         self.connections[part, area] = Connection(part, area, synapses)
 
     def subconnectome(self, connections: Dict[BrainPart, List[Area]]) -> Connectome:
+        # TODO: almost all code here is copied from `Connectome`
         areas = set([part for part in connections if isinstance(part, Area)] + list(chain(*connections.values())))
         stimuli = [part for part in connections if isinstance(part, Stimulus)]
         edges = [(part, area) for part in connections for area in connections[part]]

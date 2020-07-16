@@ -4,12 +4,14 @@ from typing import Optional, Union, TYPE_CHECKING
 import uuid
 from uuid import UUID
 
+# TODO: remove type checking everywhere
 if TYPE_CHECKING:
     from .brain import Brain
 
 from utils.bindable import Bindable, bindable_property
 
 # TODO: document me pleaaase
+# TODO 2: explain why this is needed (rather than, for example, implementing `__eq__` for Assembly)
 class UniquelyIdentifiable:
     hist = {}
 
@@ -24,6 +26,8 @@ class UniquelyIdentifiable:
         return hash(self._uid)
 
     def __eq__(self, other):
+        # TODO: make more readable
+        # TODO 2: avoid edge case in which _uid and getattr are both None
         return type(self) == type(other) and self._uid == getattr(other, '_uid', None)
 
 
@@ -74,10 +78,16 @@ class OutputArea(Area):
         return f"OutputArea(n={self.n}, beta={self.beta})"
 
 
+# TODO: use a parent class instead of union
+# A union is C-style code (where we would get a pointer to some place)
+# It seems that there is a logical relation between the classes here, which would be better modeled using a parent class
+# TODO 2: OutputArea inherits from Area, no need to specify both
 BrainPart = Union[Area, Stimulus, OutputArea]
 
 
 class Connection:
+    # TODO: type hinting to synapses
+    # TODO 2: why is this class needed? is it well-defined? do the type hints represent what really happens in its usage?
     def __init__(self, source: BrainPart, dest: BrainPart, synapses=None):
         self.source: BrainPart = source
         self.dest: BrainPart = dest
@@ -85,6 +95,7 @@ class Connection:
 
     @property
     def beta(self):
+        # TODO: always define by dest
         if isinstance(self.source, Stimulus):
             return self.dest.beta
         return self.source.beta

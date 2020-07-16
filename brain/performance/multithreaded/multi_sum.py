@@ -2,6 +2,7 @@ import numpy as np
 
 from brain.performance.multithreaded.multithreaded import multithreaded
 
+# TODO: this file is not used, remove
 
 @multithreaded
 def multi_sum(arr, lst):

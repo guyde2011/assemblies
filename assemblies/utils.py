@@ -19,7 +19,9 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area, pre
     :param area: the area into which the objects are projected
     :param preserve_brain: a boolean deteremining whether we want the brain to be changed in the process
     """
-
+    # TODO: `plasticity_status`, `disable_plasticity` are not defined in `ABCConnectome`
+    # TODO 2: instead of keeping `original_plasticity` and restoring, this is a classic use for context! (for example: `with brain.disable_plasticity():` )
+    # TODO 3: try to split the sub-steps of this function to smaller functions
     # climb up the parent tree:
     original_plasticity = brain.connectome.plasticity_status
     changed_areas: Dict[Area, List[int]] = {}
@@ -49,6 +51,7 @@ def fire_many(brain: Brain, projectables: Iterable[Projectable], area: Area, pre
                                                         for stim, areas in
                                                         layer.items() if isinstance(stim, Stimulus)}
         assembly_mapping: Dict[Area, List[Area]] = {}
+        # TODO: why such complex logic instead of using `layer.keys()` instead of `layer.items()`?
         for ass, areas in filter(lambda t: (lambda assembly, _: isinstance(assembly, Assembly))(*t), layer.items()):
             # map area to all areas into which this area needs to be fired
             assembly_mapping[ass.area] = assembly_mapping.get(ass.area, []) + areas

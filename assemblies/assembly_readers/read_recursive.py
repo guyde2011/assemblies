@@ -16,6 +16,7 @@ class ReadRecursive:
 
     @staticmethod
     def read(assembly: Assembly, preserve_brain: bool = False, *, brain: Brain):
+        # TODO: verify this reader makes sense
         """
         Read the winners from given assembly in given brain recursively using fire_many
         and return the result.

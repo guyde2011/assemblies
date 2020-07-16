@@ -15,6 +15,8 @@ class ReadDriver:
     """
     # TODO: use factory and don't read modules dynamically from directory.
     #       one good reason, is that the user won't be able to use autocomplete.
+    # TODO 2: ReadDriver currently supports only a pre defined directory (assembly_readers) which is inside the project code
+    # TODO 2: you should either support external directories, or avoid using a generic factory for objects which are known within your codebase
     def __init__(self, reader_name):
         self.readers = {}
         # Path to assemblies package
