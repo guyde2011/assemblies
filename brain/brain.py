@@ -7,12 +7,14 @@ from typing import Dict, Set, TYPE_CHECKING, List, Optional, Union
 from .components import BrainPart, Stimulus
 from brain.connectome.abc_connectome import ABCConnectome
 from brain.components import Area, UniquelyIdentifiable
+# TODO: imports should happen in any case
 if TYPE_CHECKING:
 	from .brain_recipe import BrainRecipe
 	from assemblies import Assembly
 
 
 class Brain(UniquelyIdentifiable):
+	# TODO: is T used?
 	T = 10
 	"""
 	Represents a simulated brain, with it's connectome which holds the areas, stimuli, and all the synapse weights.
@@ -29,6 +31,7 @@ class Brain(UniquelyIdentifiable):
 	"""
 
 	def __init__(self, connectome: ABCConnectome, recipe: BrainRecipe = None, repeat: int = 1):
+		# TODO: document __init__ parameters
 		super(Brain, self).__init__()
 		self.repeat = repeat
 		self.recipe = recipe or BrainRecipe()
@@ -42,10 +45,17 @@ class Brain(UniquelyIdentifiable):
 		for stimulus in self.recipe.stimuli:
 			self.add_stimulus(stimulus)
 
+	# TODO: make uniform use of type hints (if exists in some functions, add to all functions)
+	# TODO 2: `subconnectome` is never passed as None, is this option relevant?
+	# TODO 6: this function is confusing: it depends on `replace` state, behaves differently if `subconnectome` is None or not,
+	# TODO 6: performs a merge operation between `active_connectome` and `subconnectome`, and returns an undefined value.
+	# TODO 6: please make it clearer and simplify the logic
 	def next_round(self, subconnectome=None, replace=False, iterations=1):
+		# TODO 3: make next statement clearer
 		if replace or subconnectome is None:
 			_active_connectome = subconnectome or self.active_connectome
 		else:
+			# TODO 4: the following rows should use dictionary merge logic
 			_active_connectome = self.active_connectome.copy()
 			for source, destinations in subconnectome.items():
 				for dest in destinations:
@@ -53,6 +63,7 @@ class Brain(UniquelyIdentifiable):
 
 		for _ in range(iterations - 1):
 			self.connectome.project(_active_connectome)
+		# TODO 5: `project` in `Connectome` class has no `return` - what is expected to be returned here?
 		return self.connectome.project(_active_connectome)
 
 	def add_area(self, area: Area):
@@ -66,6 +77,7 @@ class Brain(UniquelyIdentifiable):
 
 	def enable(self, source: BrainPart, dest: BrainPart = None):
 		"""
+		# TODO: "inhibit" means to disable connections
 		Inhibit connection between two brain parts (i.e. activate it).
 		If dest is None then all connections from the source are inhibited.
 		:param source: The source brain part of the connection.
@@ -129,6 +141,11 @@ class Brain(UniquelyIdentifiable):
 				assembly.bind(brain=current_ctx_stack[assembly])
 
 
+# TODO: document
+# TODO 2: typehint `connectome_cls`
+# TODO 3: is it crucial to get `connectome_cls` or can we get a connectome object?
+# TODO 4: make names clearer: train_repeat -> recipe_repeat, effective_repeat -> something clearer?
+# TODO 5: should this be a method of `BrainRecipe`?
 def bake(recipe: BrainRecipe, p: float, connectome_cls, train_repeat: int, effective_repeat: int = 1):
 	brain = Brain(connectome_cls(p), recipe=recipe, repeat=train_repeat)
 	recipe.initialize(brain)

@@ -2,6 +2,8 @@ import numpy as np
 
 from brain.performance.random_matrix import RandomMatrix
 
+# TODO: this file seems unused, remove
+
 def expectation(a):
     return np.sum(a)/a.size
 

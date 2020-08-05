@@ -4,21 +4,30 @@ from typing import Optional, Union, TYPE_CHECKING
 import uuid
 from uuid import UUID
 
+# TODO: remove type checking everywhere
 if TYPE_CHECKING:
     from .brain import Brain
 
 from utils.bindable import Bindable, bindable_property
 
-
+# TODO: document me pleaaase
+# TODO 2: explain why this is needed (rather than, for example, implementing `__eq__` for Assembly)
 class UniquelyIdentifiable:
+    hist = {}
+
     def __init__(self, uid=None):
-        self._uid: UUID = uid or uuid.uuid4()
-        self._hash = hash(self._uid)
+        self._uid: UUID = uuid.uuid4()
+        if uid is not None and uid in UniquelyIdentifiable.hist:
+            self._uid = UniquelyIdentifiable.hist[uid]
+        elif uid is not None:
+            UniquelyIdentifiable.hist[uid] = self._uid
 
     def __hash__(self):
-        return self._hash
+        return hash(self._uid)
 
     def __eq__(self, other):
+        # TODO: make more readable
+        # TODO 2: avoid edge case in which _uid and getattr are both None
         return type(self) == type(other) and self._uid == getattr(other, '_uid', None)
 
 
@@ -33,6 +42,7 @@ class Area(UniquelyIdentifiable):
         if k == 0:
             self.k = math.sqrt(n)
 
+    # TODO: return as a set?
     @bindable_property
     def winners(self, *, brain: Brain):
         return brain.winners[self]
@@ -40,6 +50,11 @@ class Area(UniquelyIdentifiable):
     @bindable_property
     def support(self, *, brain: Brain):
         return brain.support[self]
+
+    @bindable_property
+    def active_assembly(self, *, brain: Brain):
+        from assemblies.assembly_fun import Assembly
+        return Assembly.read(self, brain=brain)
 
     def __repr__(self):
         return f"Area(n={self.n}, k={self.k}, beta={self.beta})"
@@ -63,10 +78,16 @@ class OutputArea(Area):
         return f"OutputArea(n={self.n}, beta={self.beta})"
 
 
+# TODO: use a parent class instead of union
+# A union is C-style code (where we would get a pointer to some place)
+# It seems that there is a logical relation between the classes here, which would be better modeled using a parent class
+# TODO 2: OutputArea inherits from Area, no need to specify both
 BrainPart = Union[Area, Stimulus, OutputArea]
 
 
 class Connection:
+    # TODO: type hinting to synapses
+    # TODO 2: why is this class needed? is it well-defined? do the type hints represent what really happens in its usage?
     def __init__(self, source: BrainPart, dest: BrainPart, synapses=None):
         self.source: BrainPart = source
         self.dest: BrainPart = dest
@@ -74,6 +95,7 @@ class Connection:
 
     @property
     def beta(self):
+        # TODO: always define by dest
         if isinstance(self.source, Stimulus):
             return self.dest.beta
         return self.source.beta

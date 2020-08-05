@@ -9,8 +9,11 @@ if TYPE_CHECKING:
 
 
 class BrainRecipe:
+    # TODO: Union[BrainPart, Assembly] is used many times. Maybe use a parent class instead that both will inherit?
     def __init__(self, *parts: Union[BrainPart, Assembly]):
+        # TODO: document
         self.areas: Set[Area] = set()
+        self.area_assembly_mapping: Dict[Area, Set[Assembly]] = {}
         self.stimuli: Set[Stimulus] = set()
         self.assemblies: Set[Assembly] = set()
         self.extend(*parts)
@@ -19,15 +22,20 @@ class BrainRecipe:
 
     def _add_area(self, area: Area):
         self.areas.add(area)
+        if area not in self.area_assembly_mapping:
+            self.area_assembly_mapping[area] = set()
 
     def _add_stimulus(self, stimulus: Stimulus):
         self.stimuli.add(stimulus)
 
     def _add_assembly(self, assembly: Assembly):
+        self._add_area(assembly.area)
         self.assemblies.add(assembly)
+        self.area_assembly_mapping[assembly.area].add(assembly)
         if self not in assembly.appears_in:
             assembly.appears_in.add(self)
 
+    # TODO: rename `part` - Assembly is not a part
     def append(self, part: Union[Assembly, BrainPart]):
         if isinstance(part, Area):
             self._add_area(part)
@@ -40,6 +48,7 @@ class BrainRecipe:
         for part in parts:
             self.append(part)
 
+    # TODO: rename to `initialize_brain` (we're not initializing the recipe, we're initializing the brain)
     def initialize(self, brain: Brain):
         self.initialization.play(brain=brain)
 

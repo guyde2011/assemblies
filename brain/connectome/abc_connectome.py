@@ -6,7 +6,8 @@ from typing import Dict, List, Tuple, Optional, TypeVar, Mapping, Generic, Calla
 
 from wrapt import ObjectProxy  # Needed to pip install
 
-from ..components import BrainPart, Area, Stimulus, Connection
+from ..components import BrainPart, Area, Stimulus, Connection  # imports shouldn't depend on dir
+                                                                # structure. find an alternative
 
 
 # The wrapt library implements easy to use wrapper objects, which delegates everything to the object you are
@@ -31,6 +32,8 @@ class MappingProxy(Generic[K_co, V_contra]):
         self._setter(key, value)
 
 
+# TODO: find a better name than ABCConnectome. something that other researches can understand.
+# TODO 2: A method named `project` is used but it's not defined in this ABC
 class ABCConnectome(metaclass=ABCMeta):
     """
     Represent the graph of connections between areas and stimuli of the brain.
@@ -67,6 +70,8 @@ class ABCConnectome(metaclass=ABCMeta):
 
     @property
     def winners(self) -> MappingProxy[Area, List[int]]:
+        # TODO: document the use of MappingProxy - why is it needed here?
+        # TODO 2: can winners be defined as a simple property? (that is, in `__init__` function)
         return MappingProxy(self._get_winners, self._set_winners)
 
     @abstractmethod

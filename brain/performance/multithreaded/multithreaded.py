@@ -10,6 +10,7 @@ def __identity__(x):
 
 
 class Multithreaded:
+    # TODO: document. especially the interface and the way this class can be used
     def __init__(self, func, threads):
         self._function = func
         self._params: Callable[[int, ...], Any] = lambda _, *args, **kwargs: (args, kwargs)
@@ -55,5 +56,7 @@ class Multithreaded:
         return self._threads
 
 
+# TODO: this should be a static method instead `Multithreaded` class - it is only related to that class
+# TODO 2: why is the * parameter necessary
 def multithreaded(func=None, *, threads=None):
     return Multithreaded(func, threads) if func else (lambda f: Multithreaded(f, threads))

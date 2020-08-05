@@ -1,4 +1,5 @@
 
+# TODO: remove this file
 @multithreaded(count=4)
 def do_sum(area1, area2):
     
