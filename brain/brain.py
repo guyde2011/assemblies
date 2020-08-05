@@ -5,7 +5,7 @@ from functools import cached_property
 from typing import Dict, Set, TYPE_CHECKING, List, Optional, Union
 
 from .components import BrainPart, Stimulus
-from brain.connectome.abc_connectome import ABCConnectome
+from brain.connectome.abstract_connectome import AbstractConnectome
 from brain.components import Area, UniquelyIdentifiable
 # TODO: imports should happen in any case
 if TYPE_CHECKING:
@@ -30,12 +30,12 @@ class Brain(UniquelyIdentifiable):
 	
 	"""
 
-	def __init__(self, connectome: ABCConnectome, recipe: BrainRecipe = None, repeat: int = 1):
+	def __init__(self, connectome: AbstractConnectome, recipe: BrainRecipe = None, repeat: int = 1):
 		# TODO: document __init__ parameters
 		super(Brain, self).__init__()
 		self.repeat = repeat
 		self.recipe = recipe or BrainRecipe()
-		self.connectome: ABCConnectome = connectome
+		self.connectome: AbstractConnectome = connectome
 		self.active_connectome: Dict[BrainPart, Set[BrainPart]] = defaultdict(lambda: set())
 		self.ctx_stack: List[Dict[Union[BrainPart, Assembly], Optional[Brain]]] = []
 

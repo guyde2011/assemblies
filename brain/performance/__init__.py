@@ -1,2 +1,1 @@
-from .multithreaded_rng import MultithreadedRNG
-from .random_matrix import *
+from .random_matrix import RandomMatrix

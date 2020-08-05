@@ -43,6 +43,7 @@ class Area(UniquelyIdentifiable):
             self.k = math.sqrt(n)
 
     # TODO: return as a set?
+    # TODONT: Will break existing code, is not a set for performance reasons.
     @bindable_property
     def winners(self, *, brain: Brain):
         return brain.winners[self]
@@ -96,15 +97,10 @@ class Connection:
     @property
     def beta(self):
         # TODO: always define by dest
+        # TODONT: this is not how beta is defined
         if isinstance(self.source, Stimulus):
             return self.dest.beta
         return self.source.beta
-
-    def __getitem__(self, key: int):
-        return self.synapses[key]
-
-    def __setitem__(self, key: int, value: float):
-        self.synapses[key] = value
 
     def __repr__(self):
         return f"Connection(synapses={self.synapses!r})"

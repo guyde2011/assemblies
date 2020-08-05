@@ -32,9 +32,8 @@ class MappingProxy(Generic[K_co, V_contra]):
         self._setter(key, value)
 
 
-# TODO: find a better name than ABCConnectome. something that other researches can understand.
 # TODO 2: A method named `project` is used but it's not defined in this ABC
-class ABCConnectome(metaclass=ABCMeta):
+class AbstractConnectome(metaclass=ABCMeta):
     """
     Represent the graph of connections between areas and stimuli of the brain.
     This is a generic abstract class which offer a good infrastructure for building new models of connectome.
@@ -56,6 +55,7 @@ class ABCConnectome(metaclass=ABCMeta):
         self.stimuli: List[Stimulus] = []
         self.connections: Dict[Tuple[BrainPart, Area], Connection] = {}
         self.p = p
+        self._plasticity_disabled = False
 
         if areas:
             self.areas = areas
@@ -69,9 +69,20 @@ class ABCConnectome(metaclass=ABCMeta):
         self.stimuli.append(stimulus)
 
     @property
+    def plasticity_disabled(self):
+        return self._plasticity_disabled
+
+    @plasticity_disabled.setter
+    def plasticity_disabled(self, value):
+        self._plasticity_disabled = value
+
+    @property
     def winners(self) -> MappingProxy[Area, List[int]]:
         # TODO: document the use of MappingProxy - why is it needed here?
         # TODO 2: can winners be defined as a simple property? (that is, in `__init__` function)
+        # TODONT: Originally this code supported a lazy approach as well, which really didn't have a way of keeping
+        # winners in a normal way. The code is implemented in this way to allow future implementations to be written
+        # lazily
         return MappingProxy(self._get_winners, self._set_winners)
 
     @abstractmethod
@@ -83,7 +94,7 @@ class ABCConnectome(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def subconnectome(self, connections: Dict[BrainPart, Area]) -> ABCConnectome:
+    def subconnectome(self, connections: Dict[BrainPart, Area]) -> AbstractConnectome:
         """
         Retrieve restriction of the connectome to specific subconnectome.
         Note that changes to the returned subconnectome should reflect in the original one. (By reference)
@@ -93,7 +104,7 @@ class ABCConnectome(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def area_connections(self, area: Area) -> List[BrainPart]:
+    def get_connected_parts(self, area: Area) -> List[BrainPart]:
         """
         Retrieve all parts with connection to specific areas, according to the current connectome
         :param area: area which we need the connections to
@@ -103,3 +114,6 @@ class ABCConnectome(metaclass=ABCMeta):
 
     def __repr__(self):
         return f'{self.__class__.__name__} with {len(self.areas)} areas, and {len(self.stimuli)} stimuli'
+
+    def project(self, connections: Dict[BrainPart, List[Area]]):
+        pass

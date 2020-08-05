@@ -1,5 +1,2 @@
-from .abc_connectome import ABCConnectome
+from .abstract_connectome import AbstractConnectome
 from .connectome import Connectome
-from .non_lazy_sparse_connectome import NonLazySparseConnectome
-from .non_lazy_connectome_original import NonLazyConnectomeOriginal
-from .non_lazy_connectome_random_matrix import NonLazyConnectomeRandomMatrix
