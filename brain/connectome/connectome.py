@@ -101,7 +101,7 @@ class Connectome(AbstractConnectome):
                 # so in reality there isn't really any place to keep this property
                 beta = source.beta if isinstance(source, Area) else area.beta
                 source_neurons: Iterable[int] = \
-                range(source.n) if isinstance(source, Stimulus) else self.winners[source]
+                    range(source.n) if isinstance(source, Stimulus) else self.winners[source]
                 # TODO: extract to small function, document the use of numpy vectorization to avoid misuse in the future
                 # TODONT: Extracting this piece of code to a different function would require:
                 # A) A lot of parameters (source, area, source_neurons, new_winners, beta) for a single line function
@@ -146,7 +146,7 @@ class Connectome(AbstractConnectome):
             prev_winner_inputs += np.sum((area_connectome.synapses[winner, :] for winner in self.winners[source]), axis=0)
         if src_stimuli:
             prev_winner_inputs += np.sum(self.connections[stim, area].synapses.sum(axis=0) for stim in src_stimuli)
-        return np.argpartition(prev_winner_inputs, area.k-1)[-area.k:]
+        return np.argpartition(prev_winner_inputs, area.n - area.k)[-area.k:]
 
     # TODO: change name
     # TODONT: TO WHAT???!!!!!
