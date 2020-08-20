@@ -68,6 +68,7 @@ class AbstractConnectome(metaclass=ABCMeta):
     def add_stimulus(self, stimulus: Stimulus):
         self.stimuli.append(stimulus)
 
+    # TODO: if not in use, delete
     @property
     def plasticity_disabled(self):
         return self._plasticity_disabled
@@ -83,6 +84,8 @@ class AbstractConnectome(metaclass=ABCMeta):
         # TODONT: Originally this code supported a lazy approach as well, which really didn't have a way of keeping
         # winners in a normal way. The code is implemented in this way to allow future implementations to be written
         # lazily
+        # TODO: still need to document MappingProxy and its use
+        # TODO 2: without real usage of MappingProxy, currently it is not needed. it is better to keep the code as simple as possible, and remove it.
         return MappingProxy(self._get_winners, self._set_winners)
 
     @abstractmethod
@@ -103,6 +106,7 @@ class AbstractConnectome(metaclass=ABCMeta):
         """
         pass
 
+    # TODO: function name should reflect the direction - for example `get_parts_connected_to_area`
     @abstractmethod
     def get_connected_parts(self, area: Area) -> List[BrainPart]:
         """

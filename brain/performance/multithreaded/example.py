@@ -1,5 +1,7 @@
 from multithreaded import multithreaded
 
+# TODO: remove code examples from source directories
+# TODO: convert examples into tests. examples that are intended to teach usage, should be in a manual or readme file
 
 @multithreaded(threads=6)
 def sum_list(list_chunk):

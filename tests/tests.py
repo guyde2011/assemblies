@@ -2,6 +2,14 @@
 from brain import *
 from brain.connectome import *
 
+# TODO: remove "non lazy brain" from documentation
+# TODO2: use a testing library (PyTest) to help you with repeating initializations and testing tasks
+# TODO3: extract repeating logic to a common function (such as the long assert statements)
+# TODO4: check for negative conditions, expected errors, and cases that should not happen
+# TODO5: check standard sizes for n, k
+# TODO6: check with p which is not 0 or 1 using statistical certainty
+# TODO7: add more tests to `project` (for example - project from one area to many, project from many areas to one)
+# TODO8: add tests to multithreaded performance implementations. especially, try to trigger edge cases related to multithreading
 
 def test_area_in_brain():
     """test for non lazy connectome"""
@@ -102,14 +110,15 @@ def test_project_connectomes():
     brain.connections[s, a].synapses[0, 0] = 1
     brain.connections[s, a].synapses[0, 1] = 0
     brain.project({s: [a]})
-
+    # TODO: remove prints from tests
     print(brain.connections[a, b])
     brain.project({a: [b]})
 
     print(brain.connections[a, b])
+    # TODO: extract meaningful numbers (such as 1.1) to constant variable with indicative name
     assert abs(brain.connections[a, b].synapses[0, 0] - 1.1) < 0.0001
 
-
+# TODO: check standard sizes for n, k
 # Supposed to test whether or not the code crashes with different n's
 def test_project_different_n():
     brain = Connectome(p=0.5, initialize=True)
@@ -133,7 +142,7 @@ def test_project_different_k():
     brain.add_stimulus(s)
     brain.project({s: [a], a: [b]})
 
-
+# TODO: remove commented out tests
 '''
 def test_project_area_winners():
     """test for lazy brain"""

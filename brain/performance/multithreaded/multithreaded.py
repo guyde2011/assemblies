@@ -18,6 +18,8 @@ class Multithreaded:
     For a usage example see multithreaded
     """
     def __init__(self, func, threads):
+        # TODO: document function params and types in this class
+        # TODO2: add default value (0 or None) to `threads` param and document usage in default case
         self._function = func
         self._params: Callable[[int, ...], Any] = lambda _, *args, **kwargs: (args, kwargs)
         self._after = __identity__
@@ -31,6 +33,7 @@ class Multithreaded:
         self._threads = threads or multiprocessing.cpu_count()
         self._executor = concurrent.futures.ThreadPoolExecutor(self._threads)
 
+    # TODO: rename to `set_params` and `set_after` to make usage clearer?
     def params(self, params):
         self._params = params
 
@@ -55,6 +58,8 @@ class Multithreaded:
         if instance:
             mt = Multithreaded(self._function.__get__(instance, owner), self._threads)
             mt.after(self._after.__get__(instance, owner))
+            # TODO: document usage of __get__ in params
+            # TODO2: extract "__get__" to const
             if hasattr(self._params, "__get__"):
                 mt.params(getattr(self._params, '__get__')(instance, owner))
             else:
@@ -71,6 +76,7 @@ class Multithreaded:
 
 # TODO: this should be a static method instead `Multithreaded` class - it is only related to that class
 # TODONT: What? I _*can*_ not understand what does it mean
+# TODONT REPLY: meaning that `multithreaded` function can be declared @staticmethod and put inside `Multithreaded` class
 # TODO 2: why is the * parameter necessary
 # TODONT 2: It enforces for the notations @multithreaded(threads=1) def blah(): ... and @multithreaded def blah(): ...
 # and disallows @multithreaded(5) def blah(): -> which will throw an error in this way.
@@ -82,4 +88,6 @@ def multithreaded(func=None, *, threads=None):
     Usage example over in example.py
 
     """
+    # TODO: what is the use of the `else` case?
+    # TODO: if there is no use - can this function be removed and `Multithreaded` class be used as a decoretor directly?
     return Multithreaded(func, threads) if func else (lambda f: Multithreaded(f, threads))

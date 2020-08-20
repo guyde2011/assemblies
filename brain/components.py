@@ -4,7 +4,6 @@ from typing import Optional, Union, TYPE_CHECKING
 import uuid
 from uuid import UUID
 
-# TODO: remove type checking everywhere
 if TYPE_CHECKING:
     from .brain import Brain
 
@@ -42,8 +41,6 @@ class Area(UniquelyIdentifiable):
         if k == 0:
             self.k = math.sqrt(n)
 
-    # TODO: return as a set?
-    # TODONT: Will break existing code, is not a set for performance reasons.
     @bindable_property
     def winners(self, *, brain: Brain):
         return brain.winners[self]
@@ -98,6 +95,7 @@ class Connection:
     def beta(self):
         # TODO: always define by dest
         # TODONT: this is not how beta is defined
+        # TODO (PERF): it is clearer this way, what's the reason to define it otherwise?
         if isinstance(self.source, Stimulus):
             return self.dest.beta
         return self.source.beta

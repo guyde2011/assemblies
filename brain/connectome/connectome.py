@@ -4,6 +4,7 @@ from typing import Dict, List, Iterable
 import numpy as np
 from collections import defaultdict
 
+# TODO: please use absolute and not relative imports. they will be clearer and easier to maintain
 from ..performance import RandomMatrix
 
 from ..components import Area, BrainPart, Stimulus, Connection
@@ -99,6 +100,10 @@ class Connectome(AbstractConnectome):
                 # TODO: it seems that `beta` should be a property of the relation, rather than dynamically computed here
                 # TODONT: beta isn't really a property of any single brain part, and the parts of a brain are dynamic,
                 # so in reality there isn't really any place to keep this property
+                # TODO: a concept of "relation" should be defined, and be responsible for this computation.
+                # TODO: the current approach is problematic - you have to remember to check the type of the parameter
+                # TODO: everywhere. it is prone to bugs and wrong assumptions. the code using `source` should not be
+                # TODO: checking its type everywhere
                 beta = source.beta if isinstance(source, Area) else area.beta
                 source_neurons: Iterable[int] = \
                     range(source.n) if isinstance(source, Stimulus) else self.winners[source]
@@ -107,6 +112,9 @@ class Connectome(AbstractConnectome):
                 # A) A lot of parameters (source, area, source_neurons, new_winners, beta) for a single line function
                 # B) Will most likely cause more misuse, as giving this line a whole function means it can be called
                 # Without invoking the whole logic
+                # TODONT reply: you don't have to pass every single variable as a parameter. the function can accept a compound object
+                # TODONT reply: (even the whole left hand side of the line)
+                # TODONT reply: the purpose is to give the operation a name. it will help avoid misuse
                 # TODO 2: is it possible to improve performance here? (is the iterable utilized correctly or can be changed?)
                 # TODONT: This is one of the lines we've worked on the most to try different variations, no it isn't
                 # possible but I DARE you to try
@@ -150,6 +158,7 @@ class Connectome(AbstractConnectome):
 
     # TODO: change name
     # TODONT: TO WHAT???!!!!!
+    # TODO: something like `step` or `fire` that does not conflict with other names
     def project(self, connections: Dict[BrainPart, List[Area]]):
         """ Project is the basic operation where some stimuli and some areas are activated,
         with only specified connections between them active.
@@ -157,6 +166,7 @@ class Connectome(AbstractConnectome):
         """
         # TODO: is the defaultdict needed? (it seems `sources_mapping` values are initialized anyways)
         # TODONT: assigning a base value of empty list to each entry takes more lines
+        # TODO: but this is what already happens in the code
         sources_mapping: defaultdict[Area, List[BrainPart]] = defaultdict(lambda: [])
 
         for part, areas in connections.items():

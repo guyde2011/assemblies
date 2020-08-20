@@ -7,7 +7,6 @@ from typing import Dict, Set, TYPE_CHECKING, List, Optional, Union
 from .components import BrainPart, Stimulus
 from brain.connectome.abstract_connectome import AbstractConnectome
 from brain.components import Area, UniquelyIdentifiable
-# TODO: imports should happen in any case
 if TYPE_CHECKING:
 	from .brain_recipe import BrainRecipe
 	from assemblies import Assembly
